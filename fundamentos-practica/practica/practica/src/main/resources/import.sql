@@ -1,0 +1,10 @@
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Laptop HP', 'Tecnología', 899.99, 'https://dummyimage.com/600x400/a626a6/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Mouse inalámbrico', 'Accesorios', 25.50, 'https://dummyimage.com/600x400/1f8b4c/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Teclado mecánico', 'Accesorios', 89.00, 'https://dummyimage.com/600x400/ff5733/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Monitor 27"', 'Pantallas', 349.99, 'https://dummyimage.com/600x400/3498db/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Audífonos Bluetooth', 'Audio', 59.99, 'https://dummyimage.com/600x400/9b59b6/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Webcam HD', 'Video', 45.00, 'https://dummyimage.com/600x400/e67e22/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Cargador USB-C', 'Accesorios', 19.99, 'https://dummyimage.com/600x400/2ecc71/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Disco SSD 1TB', 'Almacenamiento', 129.99, 'https://dummyimage.com/600x400/c0392b/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Hub USB 4 puertos', 'Accesorios', 35.00, 'https://dummyimage.com/600x400/16a085/ffffff.jpg&text=imagen');
+insert into product (id, nombre, categoria, precio, imagen) values (nextval('product_seq'), 'Silla ergonómica', 'Mobiliario', 450.00, 'https://dummyimage.com/600x400/f1c40f/ffffff.jpg&text=imagen');
