@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTO Flow - TodoApp</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-panel: #12121f;
+    --border: #2a2a4a;
+    --text: #e0e0e0;
+    --text-dim: #8888aa;
+    --accent-request: #4fc3f7;
+    --accent-response: #66bb6a;
+    --accent-controller: #ffa726;
+    --accent-service: #ab47bc;
+    --accent-entity: #ef5350;
+    --accent-json: #26c6da;
+    --glow-request: rgba(79,195,247,0.3);
+    --glow-response: rgba(102,187,106,0.3);
+    --glow-controller: rgba(255,167,38,0.3);
+    --glow-service: rgba(171,71,188,0.3);
+    --glow-entity: rgba(239,83,80,0.3);
+    --glow-json: rgba(38,198,218,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 2rem 1rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #15152a 0%, var(--bg) 100%);
+  }
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-request), var(--accent-response), var(--accent-controller));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    padding: 0.8rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+  .legend-item:hover, .legend-item.active {
+    border-color: var(--border);
+    background: rgba(255,255,255,0.04);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── Diagram ── */
+  .diagram-container {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 2rem;
+    min-height: 600px;
+    overflow: hidden;
+  }
+  .diagram-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(79,195,247,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(102,187,106,0.03) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .diagram-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .diagram-entities {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 2rem 2rem;
+    align-items: center;
+    justify-items: center;
+    min-height: 560px;
+  }
+
+  /* ── Entity Cards ── */
+  .entity {
+    position: relative;
+    background: var(--bg-panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    min-width: 160px;
+    max-width: 200px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    user-select: none;
+  }
+  .entity::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 14px;
+    opacity: 0;
+    transition: opacity 0.35s;
+    z-index: -1;
+  }
+  .entity:hover {
+    transform: translateY(-3px);
+    border-color: var(--entity-color);
+  }
+  .entity:hover::before {
+    opacity: 1;
+    background: var(--entity-glow);
+    filter: blur(12px);
+  }
+  .entity.selected {
+    border-color: var(--entity-color);
+    box-shadow: 0 0 20px var(--entity-glow), inset 0 0 20px var(--entity-glow);
+    transform: translateY(-3px) scale(1.03);
+  }
+  .entity.dimmed {
+    opacity: 0.25;
+    transform: scale(0.96);
+  }
+
+  .entity-icon { font-size: 1.6rem; margin-bottom: 0.3rem; }
+  .entity-name { font-weight: 700; font-size: 0.95rem; color: var(--entity-color); }
+  .entity-type {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .entity-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--entity-color);
+    color: #000;
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .entity.selected .entity-badge,
+  .entity:hover .entity-badge { opacity: 1; }
+
+  /* ── Row Labels ── */
+  .row-label {
+    position: absolute;
+    z-index: 3;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 10px;
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  /* ── Entity positions ── */
+  .entity-taskrequest    { grid-column: 1; grid-row: 1; --entity-color: var(--accent-request); --entity-glow: var(--glow-request); }
+  .entity-editrequest    { grid-column: 2; grid-row: 1; --entity-color: var(--accent-request); --entity-glow: var(--glow-request); }
+  .entity-controller     { grid-column: 3; grid-row: 1; --entity-color: var(--accent-controller); --entity-glow: var(--glow-controller); }
+  .entity-service        { grid-column: 4; grid-row: 1; --entity-color: var(--accent-service); --entity-glow: var(--glow-service); }
+  .entity-entity         { grid-column: 2; grid-row: 2; --entity-color: var(--accent-entity); --entity-glow: var(--glow-entity); }
+  .entity-taskresponse   { grid-column: 3; grid-row: 2; --entity-color: var(--accent-response); --entity-glow: var(--glow-response); }
+  .entity-checklistresp  { grid-column: 4; grid-row: 2; --entity-color: var(--accent-response); --entity-glow: var(--glow-response); }
+  .entity-json           { grid-column: 3; grid-row: 3; --entity-color: var(--accent-json); --entity-glow: var(--glow-json); }
+
+  /* ── Flow arrow labels ── */
+  .flow-label {
+    position: absolute;
+    z-index: 3;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    pointer-events: none;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .flow-label.highlight {
+    color: #fff;
+    border-color: var(--accent-response);
+    background: rgba(102,187,106,0.15);
+  }
+
+  /* ── Detail Panel ── */
+  .detail-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s;
+    max-height: 0;
+    opacity: 0;
+  }
+  .detail-panel.open {
+    max-height: 3000px;
+    opacity: 1;
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .detail-header h2 {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .detail-close {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .detail-close:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+
+  .detail-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-height: 700px;
+    overflow-y: auto;
+  }
+
+  .detail-code {
+    padding: 1.2rem;
+    border-right: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .detail-code pre {
+    margin: 0;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .detail-code code {
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+
+  .detail-info {
+    padding: 1.2rem;
+    overflow-y: auto;
+  }
+  .detail-info h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  /* ── Annotation Cards ── */
+  .annotation-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.6rem;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .annotation-card:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .annotation-name {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+  .annotation-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+  .annotation-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .tag-java { background: rgba(239,83,80,0.2); color: var(--accent-entity); }
+  .tag-jackson { background: rgba(79,195,247,0.2); color: var(--accent-request); }
+  .tag-pattern { background: rgba(171,71,188,0.2); color: var(--accent-service); }
+  .tag-flow { background: rgba(102,187,106,0.2); color: var(--accent-response); }
+
+  /* ── Tooltip ── */
+  .tooltip {
+    position: fixed;
+    z-index: 1000;
+    background: #222240;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    max-width: 320px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .tooltip.visible { opacity: 1; transform: translateY(0); }
+  .tooltip-title { font-weight: 700; margin-bottom: 0.3rem; font-family: monospace; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a5a; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1100px) {
+    .diagram-entities {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto auto;
+      gap: 1.5rem;
+    }
+    .entity-taskrequest    { grid-column: 1; grid-row: 1; }
+    .entity-editrequest    { grid-column: 2; grid-row: 1; }
+    .entity-controller     { grid-column: 1; grid-row: 2; }
+    .entity-service        { grid-column: 2; grid-row: 2; }
+    .entity-entity         { grid-column: 1; grid-row: 3; }
+    .entity-taskresponse   { grid-column: 2; grid-row: 3; }
+    .entity-checklistresp  { grid-column: 1; grid-row: 4; }
+    .entity-json           { grid-column: 2; grid-row: 4; }
+  }
+  @media (max-width: 600px) {
+    .diagram-entities {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .diagram-entities > * {
+      grid-column: 1 !important;
+      grid-row: auto !important;
+    }
+    .header h1 { font-size: 1.3rem; }
+    .entity { min-width: auto; width: 100%; }
+    .detail-body { grid-template-columns: 1fr; }
+    .detail-code { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ── Pulse animation ── */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 var(--entity-glow); }
+    70% { box-shadow: 0 0 0 10px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .entity.selected { animation: pulse-ring 2s infinite; }
+
+  @keyframes dash-flow {
+    to { stroke-dashoffset: -20; }
+  }
+  .flow-line {
+    stroke-dasharray: 8 6;
+    animation: dash-flow 0.8s linear infinite;
+  }
+
+  .hint {
+    text-align: center;
+    padding: 0.6rem;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    animation: hint-pulse 2s ease-in-out infinite;
+  }
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* ── Flow step indicator ── */
+  .step-indicator {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .step-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--bg-panel);
+    border: 2px solid var(--border);
+    color: var(--text-dim);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .step-dot.active {
+    border-color: var(--accent-response);
+    color: var(--accent-response);
+    box-shadow: 0 0 12px rgba(102,187,106,0.3);
+  }
+  .step-arrow {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Flujo de DTOs en Spring Boot</h1>
+  <p>Proyecto: fundamentos-spring-jpa-todoapp-rest &mdash; Click en cadaDTO para explorar su código y funciones</p>
+</div>
+
+<div class="main">
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item" data-filter="request">
+      <span class="legend-dot" style="background:var(--accent-request)"></span>
+      Request DTOs (Entrada)
+    </div>
+    <div class="legend-item" data-filter="response">
+      <span class="legend-dot" style="background:var(--accent-response)"></span>
+      Response DTOs (Salida)
+    </div>
+    <div class="legend-item" data-filter="controller">
+      <span class="legend-dot" style="background:var(--accent-controller)"></span>
+      Controller
+    </div>
+    <div class="legend-item" data-filter="service">
+      <span class="legend-dot" style="background:var(--accent-service)"></span>
+      Service
+    </div>
+    <div class="legend-item" data-filter="entity">
+      <span class="legend-dot" style="background:var(--accent-entity)"></span>
+      Entity (JPA)
+    </div>
+  </div>
+
+  <!-- Step Indicator -->
+  <div class="step-indicator" id="stepIndicator">
+    <div class="step-dot" data-step="1" onclick="showStep(1)" title="Request: Cliente envía datos">1</div>
+    <span class="step-arrow">→</span>
+    <div class="step-dot" data-step="2" onclick="showStep(2)" title="Controller: Recibe el DTO">2</div>
+    <span class="step-arrow">→</span>
+    <div class="step-dot" data-step="3" onclick="showStep(3)" title="Service: Convierte DTO a Entity">3</div>
+    <span class="step-arrow">→</span>
+    <div class="step-dot" data-step="4" onclick="showStep(4)" title="Entity: Se guarda en BD">4</div>
+    <span class="step-arrow">→</span>
+    <div class="step-dot" data-step="5" onclick="showStep(5)" title="Response: Entity → DTO → JSON">5</div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-container" id="diagramContainer">
+    <svg class="diagram-svg" id="diagramSvg"></svg>
+
+    <div class="diagram-entities" id="diagramEntities">
+      <!-- Row 1: Request flow -->
+      <div class="entity entity-taskrequest" data-entity="taskrequest" onclick="selectEntity('taskrequest')">
+        <div class="entity-badge">POST /create</div>
+        <div class="entity-icon">📥</div>
+        <div class="entity-name">TaskRequest</div>
+        <div class="entity-type">record &middot; Entrada</div>
+      </div>
+
+      <div class="entity entity-editrequest" data-entity="editrequest" onclick="selectEntity('editrequest')">
+        <div class="entity-badge">PUT /edit</div>
+        <div class="entity-icon">✏️</div>
+        <div class="entity-name">EditBasicTaskRequest</div>
+        <div class="entity-type">record &middot; Entrada</div>
+      </div>
+
+      <div class="entity entity-controller" data-entity="controller" onclick="selectEntity('controller')">
+        <div class="entity-badge">Recibe DTO</div>
+        <div class="entity-icon">🎮</div>
+        <div class="entity-name">Controller</div>
+        <div class="entity-type">@RestController</div>
+      </div>
+
+      <div class="entity entity-service" data-entity="service" onclick="selectEntity('service')">
+        <div class="entity-badge">Convierte</div>
+        <div class="entity-icon">⚙️</div>
+        <div class="entity-name">Service</div>
+        <div class="entity-type">@Service &middot; Lógica</div>
+      </div>
+
+      <!-- Row 2: Entity + Response -->
+      <div class="entity entity-entity" data-entity="entity" onclick="selectEntity('entity')">
+        <div class="entity-badge">JPA / BD</div>
+        <div class="entity-icon">🗄️</div>
+        <div class="entity-name">Entity (Task)</div>
+        <div class="entity-type">@Entity &middot; Modelo</div>
+      </div>
+
+      <div class="entity entity-taskresponse" data-entity="taskresponse" onclick="selectEntity('taskresponse')">
+        <div class="entity-badge">of(BasicTask)</div>
+        <div class="entity-icon">📤</div>
+        <div class="entity-name">TaskResponse</div>
+        <div class="entity-type">record &middot; Salida</div>
+      </div>
+
+      <div class="entity entity-checklistresp" data-entity="checklistresp" onclick="selectEntity('checklistresp')">
+        <div class="entity-badge">of(CheckListItem)</div>
+        <div class="entity-icon">📋</div>
+        <div class="entity-name">CheckListItemResponse</div>
+        <div class="entity-type">record &middot; Salida</div>
+      </div>
+
+      <!-- Row 3: JSON -->
+      <div class="entity entity-json" data-entity="json" onclick="selectEntity('json')">
+        <div class="entity-badge">HTTP Response</div>
+        <div class="entity-icon">🌐</div>
+        <div class="entity-name">JSON al Cliente</div>
+        <div class="entity-type">application/json</div>
+      </div>
+    </div>
+
+    <p class="hint" id="hint">👆 Haz clic en cualquierDTO para ver su código y explicación. Usa los números 1-5 para navegar el flujo.</p>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h2 id="detailTitle"></h2>
+      <button class="detail-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-code" id="detailCode"></div>
+      <div class="detail-info" id="detailInfo"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tooltipTitle"></div>
+  <div id="tooltipBody"></div>
+</div>
+
+<script>
+const entities = {
+  taskrequest: {
+    name: 'TaskRequest',
+    icon: '📥',
+    color: 'var(--accent-request)',
+    type: 'request',
+    code: `public record TaskRequest(
+        String title,
+        String descripcion,
+        List<String> itemns,
+        String username
+) {
+}`,
+    annotations: [
+      { name: 'record', desc: 'En Java 14+, un record es una clase inmutable que genera automáticamente constructor, getters, equals, hashCode y toString. Ideal para DTOs porque no necesitan modificarse.', tag: 'java' },
+      { name: 'String title', desc: 'Título de la tarea que el cliente envía al crear. Se mapea directamente desde el JSON del request.', tag: 'flow' },
+      { name: 'String descripcion', desc: 'Descripción de la tarea. Nota: tiene una "p" extra (typo en el código original). Se usa para tareas BasicTask.', tag: 'flow' },
+      { name: 'List<String> itemns', desc: 'Lista de ítems para tareas tipo CheckListTask. Cada string se convierte en un CheckListItem en el Service. Nota: también tiene typo ("itemns" en vez de "items").', tag: 'flow' },
+      { name: 'String username', desc: 'Nombre de usuario del propietario. Se usa para buscar el User en la BD y asignarlo como owner de la tarea.', tag: 'flow' },
+      { name: 'Flujo de uso', desc: 'El Controller recibe este record directamente del JSON (Spring lo deserializa automáticamente). Luego lo pasa al Service que crea la Entity correspondiente.', tag: 'flow' },
+    ],
+    sql: null,
+    jsonExample: `{
+  "title": "Estudiar Spring Boot",
+  "descripcion": "Aprender JPA y DTOs",
+  "itemns": ["Leer documentación", "Practicar", "Crear proyecto"],
+  "username": "juan"
+}`
+  },
+
+  editrequest: {
+    name: 'EditBasicTaskRequest',
+    icon: '✏️',
+    color: 'var(--accent-request)',
+    type: 'request',
+    code: `public record EditBasicTaskRequest(
+        String title,
+        String description
+) {
+}`,
+    annotations: [
+      { name: 'record', desc: 'Record simple e inmutable. Solo dos campos porque solo se permite editar título y descripción de BasicTask.', tag: 'java' },
+      { name: 'String title', desc: 'Nuevo título para la tarea. Si es null, el Service no lo actualiza (merge parcial).', tag: 'flow' },
+      { name: 'String description', desc: 'Nueva descripción. A diferencia de TaskRequest, aquí sí está bien escrito ("description").', tag: 'flow' },
+      { name: 'Por qué es separado', desc: 'TaskRequest es para CREAR (tiene username, items). EditBasicTaskRequest es para EDITAR (solo campos modificables). Separar previene que el cliente envíe campos que no debería cambiar.', tag: 'flow' },
+      { name: 'Flujo de uso', desc: 'Se usa en un endpoint PUT/PATCH. El Controller busca la Entity por ID, luego actualiza solo los campos no nulos del DTO sobre la Entity existente.', tag: 'flow' },
+    ],
+    sql: null,
+    jsonExample: `{
+  "title": "Título actualizado",
+  "description": "Nueva descripción más detallada"
+}`
+  },
+
+  controller: {
+    name: 'Controller',
+    icon: '🎮',
+    color: 'var(--accent-controller)',
+    type: 'controller',
+    code: `@RestController
+@RequestMapping("/api/tasks")
+public class TaskController {
+
+    @PostMapping
+    public ResponseEntity<TaskResponse> create(
+            @RequestBody TaskRequest request) {
+        // 1. Recibe el DTO (JSON → TaskRequest)
+        // 2. Pasa al Service
+        TaskResponse response = taskService
+            .createTask(request);
+        // 3. Retorna el Response DTO
+        return ResponseEntity
+            .ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponse> edit(
+            @PathVariable Long id,
+            @RequestBody EditBasicTaskRequest request) {
+        // 1. Recibe ID + DTO de edición
+        // 2. Pasa al Service
+        TaskResponse response = taskService
+            .editBasicTask(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getById(
+            @PathVariable Long id) {
+        // 1. Busca por ID
+        // 2. Convierte a Response DTO
+        TaskResponse response = taskService
+            .getTaskById(id);
+        return ResponseEntity.ok(response);
+    }
+}`,
+    annotations: [
+      { name: '@RequestBody TaskRequest', desc: 'Spring deserializa el JSON del HTTP body directamente a un record TaskRequest. No necesitas manualmente parsear JSON.', tag: 'java' },
+      { name: '@RequestBody EditBasicTaskRequest', desc: 'Igual que arriba, pero para edición. Spring solo mapea los campos que el cliente envió en el JSON.', tag: 'java' },
+      { name: 'ResponseEntity<TaskResponse>', desc: 'El controller NUNCA retorna Entity JPA. Siempre retorna un DTO Response. Esto previene exponer datos internos de la BD.', tag: 'flow' },
+      { name: 'Separación de responsabilidades', desc: 'El Controller solo: (1) recibe DTO, (2) llama al Service, (3) retorna DTO. Toda la lógica de conversión está en el Service.', tag: 'flow' },
+    ],
+    sql: null
+  },
+
+  service: {
+    name: 'Service',
+    icon: '⚙️',
+    color: 'var(--accent-service)',
+    type: 'service',
+    code: `@Service
+public class TaskService {
+
+    // ── CREAR tarea ──
+    public TaskResponse createTask(TaskRequest req) {
+        // 1. Buscar User por username
+        User user = userRepo.findByUsername(
+            req.username())
+            .orElseThrow();
+
+        // 2. Decidir tipo según si hay items
+        if (req.itemns() != null && !req.itemns().isEmpty()) {
+            // Crear CheckListTask
+            CheckListTask task = CheckListTask.builder()
+                .title(req.title())
+                .owner(user)
+                .build();
+
+            // Convertir List<String> → List<CheckListItem>
+            req.itemns().forEach(itemText -> {
+                CheckListItem item = CheckListItem.builder()
+                    .text(itemText)
+                    .build();
+                task.addItem(item); // sincroniza ambos lados
+            });
+
+            taskRepo.save(task);
+            return TaskResponse.of(task);
+        } else {
+            // Crear BasicTask
+            BasicTask task = BasicTask.builder()
+                .title(req.title())
+                .description(req.descripcion())
+                .owner(user)
+                .build();
+
+            taskRepo.save(task);
+            return TaskResponse.of(task);
+        }
+    }
+
+    // ── EDITAR BasicTask ──
+    public TaskResponse editBasicTask(
+            Long id, EditBasicTaskRequest req) {
+        BasicTask task = (BasicTask) taskRepo
+            .findById(id).orElseThrow();
+
+        // Actualizar solo campos no nulos
+        if (req.title() != null)
+            task.setTitle(req.title());
+        if (req.description() != null)
+            task.setDescription(req.description());
+
+        taskRepo.save(task);
+        return TaskResponse.of(task);
+    }
+
+    // ── OBTENER tarea ──
+    public TaskResponse getTaskById(Long id) {
+        Task task = taskRepo.findById(id)
+            .orElseThrow();
+        return TaskResponse.of(task);
+    }
+}`,
+    annotations: [
+      { name: 'TaskRequest → Entity', desc: 'El Service recibe un DTO plano (record) y lo convierte en una Entity JPA con relaciones (User, Items, Tags). Esta es la conversión más importante.', tag: 'flow' },
+      { name: 'req.itemns().forEach()', desc: 'Itera la lista de strings del DTO y crea un CheckListItem por cada uno. Luego task.addItem() sincroniza la relación bidireccional.', tag: 'flow' },
+      { name: 'TaskResponse.of(task)', desc: 'Método estático que convierte la Entity JPA de vuelta a un DTO Response. Aquí se aplica el pattern matching: si es BasicTask usa un constructor, si es CheckListTask usa otro.', tag: 'pattern' },
+      { name: 'Pattern matching instanceof', desc: 'En Java 17+: if (task instanceof BasicTask basicTask) crea la variable basicTask automáticamente. Más limpio que hacer cast manual.', tag: 'pattern' },
+      { name: 'Nunca exponer Entity', desc: 'El Service retorna TaskResponse, NO Task (Entity). El cliente nunca ve las relaciones JPA, passwords, ni campos internos.', tag: 'flow' },
+    ],
+    sql: null
+  },
+
+  entity: {
+    name: 'Entity (Task)',
+    icon: '🗄️',
+    color: 'var(--accent-entity)',
+    type: 'entity',
+    code: `// Task.java (entidad padre - ya explicada en index.html)
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class Task {
+    @Id @GeneratedValue
+    private Long id;
+    private String title;
+    private LocalDateTime createdAt;
+
+    @ManyToOne
+    private User owner;
+
+    @ManyToMany
+    private Set<TaskTag> tags;
+}
+
+// BasicTask.java
+@Entity
+public class BasicTask extends Task {
+    @Column(columnDefinition = "TEXT")
+    private String description;
+}
+
+// CheckListTask.java
+@Entity
+public class CheckListTask extends Task {
+    @OneToMany(mappedBy = "checkListTask",
+               cascade = CascadeType.ALL,
+               orphanRemoval = true)
+    private List<CheckListItem> items;
+}
+
+// CheckListItem.java
+@Entity
+public class CheckListItem {
+    @Id @GeneratedValue
+    private Long id;
+    private String text;
+    private boolean checked;
+
+    @ManyToOne
+    private CheckListTask checkListTask;
+}`,
+    annotations: [
+      { name: '¿Por qué no enviar la Entity?', desc: 'La Entity tiene: (1) referencias circulares (Task→User→Tasks→...), (2) datos sensibles (password), (3) proxies de Hibernate que no se serializan a JSON bien.', tag: 'flow' },
+      { name: 'El DTO como "máscara"', desc: 'TaskResponse es una máscara que selecciona SOLO los campos que el cliente debe ver: id, createdAt, title, description/items, tags.', tag: 'flow' },
+      { name: 'Relaciones JPA', desc: 'La Entity tiene @ManyToOne (User), @ManyToMany (Tags), @OneToMany (Items). El DTO colapsa todo a campos simples (String tags, List<ItemResponse> items).', tag: 'flow' },
+    ],
+    sql: null
+  },
+
+  taskresponse: {
+    name: 'TaskResponse',
+    icon: '📤',
+    color: 'var(--accent-response)',
+    type: 'response',
+    code: `@JsonInclude(JsonInclude.Include.NON_NULL)
+public record TaskResponse(
+        Long id,
+        @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "dd/MM/yyyy hh:mm:ss"
+        )
+        LocalDateTime createdAt,
+        String title,
+        String description,
+        List<CheckListItemResponse> items,
+        String tags
+) {
+    // ── Constructor para BasicTask ──
+    public TaskResponse(
+            Long id, LocalDateTime createdAt,
+            String title, String description,
+            String tags) {
+        this(id, createdAt, title, description, null, tags);
+    }
+
+    // ── Constructor para CheckListTask ──
+    public TaskResponse(
+            Long id, LocalDateTime createdAt,
+            String title,
+            List<CheckListItemResponse> items,
+            String tags) {
+        this(id, createdAt, title, null, items, tags);
+    }
+
+    // ── Factory: convierte BasicTask → Response ──
+    public static TaskResponse of(BasicTask task) {
+        return new TaskResponse(
+            task.getId(),
+            task.getCreatedAt(),
+            task.getTitle(),
+            task.getDescription(),
+            task.getTags().isEmpty() ? null :
+                task.getTags().stream()
+                    .map(TaskTag::getNombre)
+                    .collect(Collectors.joining(", "))
+        );
+    }
+
+    // ── Factory: convierte CheckListTask → Response ──
+    public static TaskResponse of(CheckListTask task) {
+        return new TaskResponse(
+            task.getId(),
+            task.getCreatedAt(),
+            task.getTitle(),
+            task.getItems().stream()
+                .map(CheckListItemResponse::of)
+                .toList(),
+            task.getTags().isEmpty() ? null :
+                task.getTags().stream()
+                    .map(TaskTag::getNombre)
+                    .collect(Collectors.joining(", "))
+        );
+    }
+
+    // ── Factory genérico con pattern matching ──
+    public static TaskResponse of(Task task) {
+        if (task instanceof BasicTask basicTask)
+            return TaskResponse.of(basicTask);
+        return TaskResponse.of((CheckListTask) task);
+    }
+}`,
+    annotations: [
+      { name: '@JsonInclude(NON_NULL)', desc: 'Si un campo es null, NO se incluye en el JSON. Ej: BasicTask no tiene items → el JSON no tendrá "items": null, simplemente no aparece ese campo.', tag: 'jackson' },
+      { name: '@JsonFormat(pattern = "dd/MM/yyyy hh:mm:ss")', desc: 'Formatea el LocalDateTime a string legible. Sin esto, Jackson serializa como array [2024,3,15,10,30] que es inútil para el cliente.', tag: 'jackson' },
+      { name: 'Constructores sobrecargados', desc: 'Tres constructores: (1) completo, (2) para BasicTask (sin items), (3) para CheckListTask (sin description). Permite crear instancias flexibles sin campos vacíos.', tag: 'java' },
+      { name: 'of(BasicTask)', desc: 'Método estático factory. Recibe una Entity BasicTask y mapea: id, createdAt, title, description, tags (como String). NO mapea items.', tag: 'flow' },
+      { name: 'of(CheckListTask)', desc: 'Método estático factory. Recibe CheckListTask y mapea: id, createdAt, title, items (como lista de CheckListItemResponse), tags. NO mapea description.', tag: 'flow' },
+      { name: 'of(Task) con pattern matching', desc: 'Usa instanceof con pattern matching (Java 17+): if (task instanceof BasicTask basicTask) crea la variable directamente. Decide cuál factory usar según el tipo real.', tag: 'pattern' },
+      { name: 'Collectors.joining(", ")', desc: 'Convierte Set<TaskTag> a un solo String: "urgente, trabajo, java". Más simple que mandar un array de tags al cliente.', tag: 'java' },
+    ],
+    sql: null,
+    jsonExample: `// Respuesta para BasicTask:
+{
+  "id": 1,
+  "createdAt": "15/03/2024 10:30:00",
+  "title": "Estudiar Spring",
+  "description": "Aprender JPA",
+  "tags": "urgente, java"
+}
+
+// Respuesta para CheckListTask:
+{
+  "id": 2,
+  "createdAt": "15/03/2024 11:00:00",
+  "title": "Comprar víveres",
+  "items": [
+    { "id": 1, "text": "Leche", "checked": false },
+    { "id": 2, "text": "Pan", "checked": true }
+  ],
+  "tags": "personal"
+}`
+  },
+
+  checklistresp: {
+    name: 'CheckListItemResponse',
+    icon: '📋',
+    color: 'var(--accent-response)',
+    type: 'response',
+    code: `public record CheckListItemResponse(
+        Long id,
+        String text,
+        boolean checked
+) {
+    public static CheckListItemResponse of(
+            CheckListItem item) {
+        return new CheckListItemResponse(
+            item.getId(),
+            item.getText(),
+            item.isChecked()
+        );
+    }
+}`,
+    annotations: [
+      { name: 'record', desc: 'Record simple con 3 campos. Representa un item de checklist de forma segura para el cliente.', tag: 'java' },
+      { name: 'Long id', desc: 'ID del item. Permite al cliente hacer PUT para marcar/desmarcar checked por ID.', tag: 'flow' },
+      { name: 'String text', desc: 'Texto del ítem (ej: "Leche", "Pan"). Es el contenido que el usuario ve.', tag: 'flow' },
+      { name: 'boolean checked', desc: 'Estado: completado o no. El cliente puede enviar este campo en un PUT para toggle.', tag: 'flow' },
+      { name: 'of(CheckListItem)', desc: 'Método factory que convierte la Entity CheckListItem en este DTO. Extrae solo id, text, checked. NO expone la referencia a CheckListTask (evita循环).', tag: 'flow' },
+      { name: 'Dentro de TaskResponse', desc: 'TaskResponse tiene un campo List<CheckListItemResponse> items. Solo se usa cuando la tarea es CheckListTask. Para BasicTask, este campo es null.', tag: 'flow' },
+    ],
+    sql: null,
+    jsonExample: `{
+  "id": 1,
+  "text": "Leche",
+  "checked": false
+}`
+  },
+
+  json: {
+    name: 'JSON al Cliente',
+    icon: '🌐',
+    color: 'var(--accent-json)',
+    type: 'json',
+    code: `// ═══════════════════════════════════════════
+// RESPUESTA COMPLETA DE UNA TAREA BÁSICA
+// GET /api/tasks/1
+// ═══════════════════════════════════════════
+{
+  "id": 1,
+  "createdAt": "15/03/2024 10:30:00",
+  "title": "Estudiar Spring Boot",
+  "description": "Aprender JPA y DTOs",
+  "tags": "urgente, java"
+}
+
+// ═══════════════════════════════════════════
+// RESPUESTA DE UNA CHECKLIST
+// GET /api/tasks/2
+// ═══════════════════════════════════════════
+{
+  "id": 2,
+  "createdAt": "15/03/2024 11:00:00",
+  "title": "Comprar víveres",
+  "items": [
+    { "id": 1, "text": "Leche", "checked": false },
+    { "id": 2, "text": "Pan", "checked": true },
+    { "id": 3, "text": "Huevos", "checked": false }
+  ],
+  "tags": "personal, cocina"
+}
+
+// ═══════════════════════════════════════════
+// PARA CREAR (el cliente envía esto):
+// POST /api/tasks
+// ═══════════════════════════════════════════
+{
+  "title": "Nueva tarea",
+  "descripcion": "Una descripción",
+  "itemns": ["Paso 1", "Paso 2"],
+  "username": "juan"
+}
+
+// ═══════════════════════════════════════════
+// PARA EDITAR (el cliente envía esto):
+// PUT /api/tasks/1
+// ═══════════════════════════════════════════
+{
+  "title": "Título actualizado",
+  "description": "Nueva descripción"
+}`,
+    annotations: [
+      { name: 'El flujo completo', desc: 'Cliente → TaskRequest (JSON) → Controller → Service → Entity (guarda en BD) → TaskResponse.of() → JSON → Cliente', tag: 'flow' },
+      { name: 'El cliente NUNCA ve la Entity', desc: 'El JSON que recibe el cliente tiene campos planos: title, description, tags (String). Nunca ve @ManyToOne, @ManyToMany, ni referencias circulares de JPA.', tag: 'flow' },
+      { name: 'NON_NULL en acción', desc: 'BasicTask no tiene items → el JSON no tiene campo "items". CheckListTask no tiene description → el JSON no tiene campo "description". Así se mantiene limpio.', tag: 'jackson' },
+    ],
+    sql: null
+  }
+};
+
+// ── Flow lines definition ──
+const flows = [
+  { from: 'taskrequest', to: 'controller', label: '@RequestBody', type: 'request',
+    desc: 'Spring deserializa JSON a TaskRequest' },
+  { from: 'editrequest', to: 'controller', label: '@RequestBody', type: 'request',
+    desc: 'Spring deserializa JSON a EditBasicTaskRequest' },
+  { from: 'controller', to: 'service', label: 'Pasa DTO', type: 'service',
+    desc: 'Controller llama al Service con el DTO' },
+  { from: 'service', to: 'entity', label: 'DTO → Entity', type: 'entity',
+    desc: 'Service crea/modifica la Entity JPA' },
+  { from: 'entity', to: 'taskresponse', label: '.of(task)', type: 'response',
+    desc: 'Service convierte Entity a Response DTO' },
+  { from: 'entity', to: 'checklistresp', label: '.of(item)', type: 'response',
+    desc: 'Cada CheckListItem se convierte a su DTO' },
+  { from: 'taskresponse', to: 'json', label: 'Jackson → JSON', type: 'json',
+    desc: 'Spring convierte el record a JSON automáticamente' },
+  { from: 'checklistresp', to: 'taskresponse', label: 'anidado', type: 'response',
+    desc: 'CheckListItemResponse se anida dentro de TaskResponse.items' },
+];
+
+const flowColors = {
+  request: '#4fc3f7',
+  service: '#ab47bc',
+  entity: '#ef5350',
+  response: '#66bb6a',
+  json: '#26c6da'
+};
+
+let selectedEntity = null;
+
+// ── Draw SVG Lines ──
+function drawLines() {
+  const svg = document.getElementById('diagramSvg');
+  const container = document.getElementById('diagramContainer');
+  const rect = container.getBoundingClientRect();
+  svg.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  Object.entries(flowColors).forEach(([type, color]) => {
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'arrow-' + type);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '9');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '6');
+    marker.setAttribute('markerHeight', '6');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    path.setAttribute('fill', color);
+    marker.appendChild(path);
+    defs.appendChild(marker);
+  });
+  svg.appendChild(defs);
+
+  container.querySelectorAll('.flow-label').forEach(l => l.remove());
+
+  flows.forEach((flow, i) => {
+    const fromEl = document.querySelector(`[data-entity="${flow.from}"]`);
+    const toEl = document.querySelector(`[data-entity="${flow.to}"]`);
+    if (!fromEl || !toEl) return;
+
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+
+    const x1 = fromRect.left + fromRect.width / 2 - rect.left;
+    const y1 = fromRect.top + fromRect.height / 2 - rect.top;
+    const x2 = toRect.left + toRect.width / 2 - rect.left;
+    const y2 = toRect.top + toRect.height / 2 - rect.top;
+
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const offsetX = Math.cos(angle) * (fromRect.width / 2 + 8);
+    const offsetY = Math.sin(angle) * (fromRect.height / 2 + 8);
+    const offsetX2 = Math.cos(angle) * (toRect.width / 2 + 8);
+    const offsetY2 = Math.sin(angle) * (toRect.height / 2 + 8);
+
+    const sx = x1 + offsetX;
+    const sy = y1 + offsetY;
+    const ex = x2 - offsetX2;
+    const ey = y2 - offsetY2;
+
+    const mx = (sx + ex) / 2;
+    const my = (sy + ey) / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const curvature = len * 0.15;
+    const nx = -dy / len * curvature;
+    const ny = dx / len * curvature;
+    const cx = mx + nx * (i % 2 === 0 ? 1 : -1);
+    const cy = my + ny * (i % 2 === 0 ? 1 : -1);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`);
+    path.setAttribute('stroke', flowColors[flow.type]);
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', `url(#arrow-${flow.type})`);
+    path.setAttribute('opacity', '0.6');
+    path.classList.add('rel-path');
+    path.dataset.type = flow.type;
+    path.dataset.from = flow.from;
+    path.dataset.to = flow.to;
+    svg.appendChild(path);
+
+    const flowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    flowPath.setAttribute('d', `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`);
+    flowPath.setAttribute('stroke', flowColors[flow.type]);
+    flowPath.setAttribute('stroke-width', '2');
+    flowPath.setAttribute('fill', 'none');
+    flowPath.setAttribute('opacity', '0.3');
+    flowPath.classList.add('flow-line', 'rel-path');
+    flowPath.dataset.type = flow.type;
+    flowPath.dataset.from = flow.from;
+    flowPath.dataset.to = flow.to;
+    svg.appendChild(flowPath);
+
+    const label = document.createElement('div');
+    label.className = 'flow-label';
+    label.dataset.type = flow.type;
+    label.dataset.from = flow.from;
+    label.dataset.to = flow.to;
+    const t = 0.5;
+    const lx = (1-t)*(1-t)*sx + 2*(1-t)*t*cx + t*t*ex;
+    const ly = (1-t)*(1-t)*sy + 2*(1-t)*t*cy + t*t*ey;
+    label.style.left = lx + 'px';
+    label.style.top = ly + 'px';
+    label.style.transform = 'translate(-50%, -50%)';
+    label.textContent = flow.label;
+    label.title = flow.desc;
+    container.appendChild(label);
+  });
+}
+
+// ── Select Entity ──
+function selectEntity(id) {
+  const panel = document.getElementById('detailPanel');
+  const hint = document.getElementById('hint');
+
+  if (selectedEntity === id) { closePanel(); return; }
+
+  selectedEntity = id;
+  hint.style.display = 'none';
+
+  document.querySelectorAll('.entity').forEach(el => {
+    el.classList.remove('selected', 'dimmed');
+    if (el.dataset.entity === id) {
+      el.classList.add('selected');
+    } else {
+      const isRelated = flows.some(f =>
+        (f.from === id && f.to === el.dataset.entity) ||
+        (f.to === id && f.from === el.dataset.entity)
+      );
+      if (!isRelated) el.classList.add('dimmed');
+    }
+  });
+
+  document.querySelectorAll('.rel-path').forEach(path => {
+    const isRelated = flows.some(f =>
+      (f.from === id && f.to === path.dataset.to) ||
+      (f.to === id && f.from === path.dataset.from)
+    );
+    path.setAttribute('opacity', isRelated ? '0.9' : '0.1');
+    path.setAttribute('stroke-width', isRelated ? '3' : '1');
+  });
+
+  document.querySelectorAll('.flow-label').forEach(label => {
+    const isRelated = flows.some(f =>
+      (f.from === id && f.to === label.dataset.to) ||
+      (f.to === id && f.from === label.dataset.from)
+    );
+    label.classList.toggle('highlight', isRelated);
+    label.style.opacity = isRelated ? '1' : '0.2';
+  });
+
+  const data = entities[id];
+  document.getElementById('detailTitle').innerHTML =
+    `${data.icon} <span style="color:${data.color}">${data.name}</span>`;
+
+  const codeEl = document.getElementById('detailCode');
+  codeEl.innerHTML = `<pre><code class="language-java">${escapeHtml(data.code)}</code></pre>`;
+  codeEl.querySelectorAll('code').forEach(block => hljs.highlightElement(block));
+
+  const infoEl = document.getElementById('detailInfo');
+  let html = '<h3>Anotaciones y Explicación</h3>';
+  data.annotations.forEach(a => {
+    const tagClass = {
+      java: 'tag-java',
+      jackson: 'tag-jackson',
+      pattern: 'tag-pattern',
+      flow: 'tag-flow'
+    }[a.tag] || 'tag-flow';
+    const tagLabel = {
+      java: 'Java',
+      jackson: 'Jackson',
+      pattern: 'Pattern',
+      flow: 'Flujo'
+    }[a.tag] || '';
+    html += `
+      <div class="annotation-card" data-tooltip-title="${escapeAttr(a.name)}" data-tooltip-body="${escapeAttr(a.desc)}">
+        <div class="annotation-name" style="color:${data.color}">
+          ${escapeHtml(a.name)}
+          <span class="annotation-tag ${tagClass}">${tagLabel}</span>
+        </div>
+        <div class="annotation-desc">${escapeHtml(a.desc)}</div>
+      </div>`;
+  });
+
+  if (data.jsonExample) {
+    html += `<div class="sql-preview" style="margin-top:1rem;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:1rem;">
+      <h4 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);margin-bottom:0.6rem;">Ejemplo JSON</h4>
+      <pre><code class="language-json">${escapeHtml(data.jsonExample)}</code></pre>
+    </div>`;
+  }
+
+  infoEl.innerHTML = html;
+  infoEl.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+
+  panel.classList.add('open');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  infoEl.querySelectorAll('.annotation-card').forEach(card => {
+    card.addEventListener('mouseenter', showTooltip);
+    card.addEventListener('mousemove', moveTooltip);
+    card.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+function closePanel() {
+  selectedEntity = null;
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('hint').style.display = '';
+  document.querySelectorAll('.entity').forEach(el => el.classList.remove('selected', 'dimmed'));
+  document.querySelectorAll('.rel-path').forEach(p => { p.setAttribute('opacity', '0.6'); p.setAttribute('stroke-width', '2'); });
+  document.querySelectorAll('.flow-label').forEach(l => { l.classList.remove('highlight'); l.style.opacity = '1'; });
+}
+
+// ── Step navigation ──
+const stepEntities = {
+  1: ['taskrequest', 'editrequest'],
+  2: ['controller'],
+  3: ['service'],
+  4: ['entity'],
+  5: ['taskresponse', 'checklistresp', 'json']
+};
+
+function showStep(step) {
+  document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
+  document.querySelector(`.step-dot[data-step="${step}"]`).classList.add('active');
+
+  const targets = stepEntities[step];
+  if (targets.length === 1) {
+    selectEntity(targets[0]);
+  } else {
+    // Show multiple entities for this step
+    const panel = document.getElementById('detailPanel');
+    const hint = document.getElementById('hint');
+    selectedEntity = null;
+    hint.style.display = 'none';
+
+    document.querySelectorAll('.entity').forEach(el => {
+      el.classList.remove('selected', 'dimmed');
+      if (targets.includes(el.dataset.entity)) {
+        el.classList.add('selected');
+      } else {
+        el.classList.add('dimmed');
+      }
+    });
+
+    document.querySelectorAll('.rel-path').forEach(path => {
+      const fromMatch = targets.includes(path.dataset.from);
+      const toMatch = targets.includes(path.dataset.to);
+      path.setAttribute('opacity', (fromMatch || toMatch) ? '0.9' : '0.1');
+      path.setAttribute('stroke-width', (fromMatch || toMatch) ? '3' : '1');
+    });
+
+    document.querySelectorAll('.flow-label').forEach(label => {
+      const fromMatch = targets.includes(label.dataset.from);
+      const toMatch = targets.includes(label.dataset.to);
+      label.classList.toggle('highlight', fromMatch || toMatch);
+      label.style.opacity = (fromMatch || toMatch) ? '1' : '0.2';
+    });
+
+    panel.classList.remove('open');
+  }
+}
+
+// ── Tooltip ──
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e) {
+  const title = e.currentTarget.dataset.tooltipTitle;
+  const body = e.currentTarget.dataset.tooltipBody;
+  if (!title) return;
+  document.getElementById('tooltipTitle').textContent = title;
+  document.getElementById('tooltipBody').textContent = body;
+  tooltip.classList.add('visible');
+}
+function moveTooltip(e) {
+  let x = e.clientX + 12;
+  let y = e.clientY + 12;
+  if (x + 320 > window.innerWidth) x = e.clientX - 330;
+  if (y + 100 > window.innerHeight) y = e.clientY - 110;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.addEventListener('load', () => {
+  drawLines();
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(drawLines, 150);
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (e.key === '1') selectEntity('taskrequest');
+  if (e.key === '2') selectEntity('editrequest');
+  if (e.key === '3') selectEntity('controller');
+  if (e.key === '4') selectEntity('service');
+  if (e.key === '5') selectEntity('taskresponse');
+  if (e.key === '6') selectEntity('checklistresp');
+  if (e.key === '7') selectEntity('entity');
+  if (e.key === '8') selectEntity('json');
+});
+</script>
+
+</body>
+</html>
