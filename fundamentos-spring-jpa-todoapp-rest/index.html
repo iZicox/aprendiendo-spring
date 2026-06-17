@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relaciones JPA - TodoApp</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-panel: #12121f;
+    --border: #2a2a4a;
+    --text: #e0e0e0;
+    --text-dim: #8888aa;
+    --accent-user: #4fc3f7;
+    --accent-task: #66bb6a;
+    --accent-tasktag: #ffa726;
+    --accent-checklisttask: #ab47bc;
+    --accent-checklistitem: #ef5350;
+    --accent-basic: #26c6da;
+    --glow-user: rgba(79,195,247,0.3);
+    --glow-task: rgba(102,187,106,0.3);
+    --glow-tasktag: rgba(255,167,38,0.3);
+    --glow-checklisttask: rgba(171,71,188,0.3);
+    --glow-checklistitem: rgba(239,83,80,0.3);
+    --glow-basic: rgba(38,198,218,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    padding: 2rem 1rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #15152a 0%, var(--bg) 100%);
+  }
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-user), var(--accent-task), var(--accent-tasktag));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  /* ── Main Layout ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    padding: 0.8rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+  .legend-item:hover, .legend-item.active {
+    border-color: var(--border);
+    background: rgba(255,255,255,0.04);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── Diagram ── */
+  .diagram-container {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 2rem;
+    min-height: 500px;
+    overflow: hidden;
+  }
+  .diagram-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(79,195,247,0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(102,187,106,0.03) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .diagram-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .diagram-entities {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 2rem 3rem;
+    align-items: center;
+    justify-items: center;
+    min-height: 460px;
+  }
+
+  /* ── Entity Cards ── */
+  .entity {
+    position: relative;
+    background: var(--bg-panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    min-width: 160px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    user-select: none;
+  }
+  .entity::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 14px;
+    opacity: 0;
+    transition: opacity 0.35s;
+    z-index: -1;
+  }
+  .entity:hover {
+    transform: translateY(-3px);
+    border-color: var(--entity-color);
+  }
+  .entity:hover::before {
+    opacity: 1;
+    background: var(--entity-glow);
+    filter: blur(12px);
+  }
+  .entity.selected {
+    border-color: var(--entity-color);
+    box-shadow: 0 0 20px var(--entity-glow), inset 0 0 20px var(--entity-glow);
+    transform: translateY(-3px) scale(1.03);
+  }
+  .entity.dimmed {
+    opacity: 0.25;
+    transform: scale(0.96);
+  }
+
+  .entity-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.3rem;
+  }
+  .entity-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--entity-color);
+  }
+  .entity-type {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .entity-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--entity-color);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .entity.selected .entity-badge,
+  .entity:hover .entity-badge {
+    opacity: 1;
+  }
+
+  /* Entity positions */
+  .entity-user     { grid-column: 1; grid-row: 1; --entity-color: var(--accent-user); --entity-glow: var(--glow-user); }
+  .entity-task     { grid-column: 2; grid-row: 1; --entity-color: var(--accent-task); --entity-glow: var(--glow-task); }
+  .entity-tasktag  { grid-column: 3; grid-row: 1; --entity-color: var(--accent-tasktag); --entity-glow: var(--glow-tasktag); }
+  .entity-basic    { grid-column: 1; grid-row: 2; --entity-color: var(--accent-basic); --entity-glow: var(--glow-basic); }
+  .entity-checklisttask { grid-column: 2; grid-row: 3; --entity-color: var(--accent-checklisttask); --entity-glow: var(--glow-checklisttask); }
+  .entity-checklistitem { grid-column: 3; grid-row: 3; --entity-color: var(--accent-checklistitem); --entity-glow: var(--glow-checklistitem); }
+
+  /* ── Relationship Labels (on SVG) ── */
+  .rel-label {
+    position: absolute;
+    z-index: 3;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    pointer-events: none;
+    transition: all 0.3s;
+  }
+  .rel-label.highlight {
+    color: #fff;
+    border-color: var(--accent-task);
+    background: rgba(102,187,106,0.15);
+  }
+
+  /* ── Detail Panel ── */
+  .detail-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s;
+    max-height: 0;
+    opacity: 0;
+  }
+  .detail-panel.open {
+    max-height: 2000px;
+    opacity: 1;
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .detail-header h2 {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .detail-close {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .detail-close:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+
+  .detail-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .detail-code {
+    padding: 1.2rem;
+    border-right: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .detail-code pre {
+    margin: 0;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .detail-code code {
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+
+  .detail-info {
+    padding: 1.2rem;
+    overflow-y: auto;
+  }
+  .detail-info h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  /* ── Annotation Cards ── */
+  .annotation-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.6rem;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .annotation-card:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .annotation-name {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+  .annotation-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+  .annotation-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .tag-relation { background: rgba(102,187,106,0.2); color: var(--accent-task); }
+  .tag-config { background: rgba(79,195,247,0.2); color: var(--accent-user); }
+  .tag-inheritance { background: rgba(171,71,188,0.2); color: var(--accent-checklisttask); }
+  .tag-lombok { background: rgba(255,167,38,0.2); color: var(--accent-tasktag); }
+
+  /* ── SQL Preview ── */
+  .sql-preview {
+    margin-top: 1rem;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  .sql-preview h4 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+  }
+  .sql-preview pre {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #abb2bf;
+  }
+  .sql-preview code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  /* ── Tooltip ── */
+  .tooltip {
+    position: fixed;
+    z-index: 1000;
+    background: #222240;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    max-width: 320px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .tooltip-title {
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    font-family: monospace;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a5a; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .diagram-entities {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto auto;
+      gap: 1.5rem;
+    }
+    .entity-user     { grid-column: 1; grid-row: 1; }
+    .entity-task     { grid-column: 2; grid-row: 1; }
+    .entity-tasktag  { grid-column: 2; grid-row: 2; }
+    .entity-basic    { grid-column: 1; grid-row: 2; }
+    .entity-checklisttask { grid-column: 1; grid-row: 3; }
+    .entity-checklistitem { grid-column: 2; grid-row: 3; }
+    .detail-body {
+      grid-template-columns: 1fr;
+    }
+    .detail-code {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+  }
+  @media (max-width: 600px) {
+    .diagram-entities {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .entity-user, .entity-task, .entity-tasktag,
+    .entity-basic, .entity-checklisttask, .entity-checklistitem {
+      grid-column: 1; grid-row: auto;
+    }
+    .header h1 { font-size: 1.3rem; }
+    .entity { min-width: auto; width: 100%; }
+  }
+
+  /* ── Pulse animation for selected ── */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 var(--entity-glow); }
+    70% { box-shadow: 0 0 0 10px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .entity.selected { animation: pulse-ring 2s infinite; }
+
+  /* ── Flow animation on SVG lines ── */
+  @keyframes dash-flow {
+    to { stroke-dashoffset: -20; }
+  }
+  .flow-line {
+    stroke-dasharray: 8 6;
+    animation: dash-flow 0.8s linear infinite;
+  }
+
+  /* ── Initial hint ── */
+  .hint {
+    text-align: center;
+    padding: 0.6rem;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    animation: hint-pulse 2s ease-in-out infinite;
+  }
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Relaciones JPA en Spring Boot</h1>
+  <p>Proyecto: fundamentos-spring-jpa-todoapp-rest &mdash; Click en cualquier entidad para explorar sus anotaciones</p>
+</div>
+
+<div class="main">
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item" data-filter="relation">
+      <span class="legend-dot" style="background:var(--accent-task)"></span>
+      @OneToMany / @ManyToOne
+    </div>
+    <div class="legend-item" data-filter="manymany">
+      <span class="legend-dot" style="background:var(--accent-tasktag)"></span>
+      @ManyToMany
+    </div>
+    <div class="legend-item" data-filter="inheritance">
+      <span class="legend-dot" style="background:var(--accent-checklisttask)"></span>
+      @Inheritance (JOINED)
+    </div>
+    <div class="legend-item" data-filter="cascade">
+      <span class="legend-dot" style="background:var(--accent-checklistitem)"></span>
+      Cascade + OrphanRemoval
+    </div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-container" id="diagramContainer">
+    <svg class="diagram-svg" id="diagramSvg"></svg>
+
+    <div class="diagram-entities" id="diagramEntities">
+      <div class="entity entity-user" data-entity="user" onclick="selectEntity('user')">
+        <div class="entity-badge">1:N → Task</div>
+        <div class="entity-icon">👤</div>
+        <div class="entity-name">User</div>
+        <div class="entity-type">@Entity &middot; user_entity</div>
+      </div>
+
+      <div class="entity entity-task" data-entity="task" onclick="selectEntity('task')">
+        <div class="entity-badge">Base abstracta</div>
+        <div class="entity-icon">📋</div>
+        <div class="entity-name">Task</div>
+        <div class="entity-type">@Entity abstract &middot; @Inheritance</div>
+      </div>
+
+      <div class="entity entity-tasktag" data-entity="tasktag" onclick="selectEntity('tasktag')">
+        <div class="entity-badge">M:N con Task</div>
+        <div class="entity-icon">🏷️</div>
+        <div class="entity-name">TaskTag</div>
+        <div class="entity-type">@Entity &middot; task_tag</div>
+      </div>
+
+      <div class="entity entity-basic" data-entity="basic" onclick="selectEntity('basic')">
+        <div class="entity-badge">Hereda Task</div>
+        <div class="entity-icon">📝</div>
+        <div class="entity-name">BasicTask</div>
+        <div class="entity-type">extends Task &middot; basic_task</div>
+      </div>
+
+      <div class="entity entity-checklisttask" data-entity="checklisttask" onclick="selectEntity('checklisttask')">
+        <div class="entity-badge">1:N → Item</div>
+        <div class="entity-icon">✅</div>
+        <div class="entity-name">CheckListTask</div>
+        <div class="entity-type">extends Task &middot; check_list_task</div>
+      </div>
+
+      <div class="entity entity-checklistitem" data-entity="checklistitem" onclick="selectEntity('checklistitem')">
+        <div class="entity-badge">N:1 → CheckList</div>
+        <div class="entity-icon">☑️</div>
+        <div class="entity-name">CheckListItem</div>
+        <div class="entity-type">@Entity &middot; check_list_item</div>
+      </div>
+    </div>
+
+    <p class="hint" id="hint">👆 Haz clic en una entidad para ver su código y anotaciones</p>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h2 id="detailTitle"></h2>
+      <button class="detail-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-code" id="detailCode"></div>
+      <div class="detail-info" id="detailInfo"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tooltipTitle"></div>
+  <div id="tooltipBody"></div>
+</div>
+
+<script>
+// ── Entity Data ──
+const entities = {
+  user: {
+    name: 'User',
+    icon: '👤',
+    color: 'var(--accent-user)',
+    code: `@Entity
+@Table(name = "user_entity")
+@Getter @Setter @ToString
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class User {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String username, password, email, fullname;
+
+    @OneToMany(
+        mappedBy = "owner",
+        fetch = FetchType.LAZY
+    )
+    @Builder.Default
+    @ToString.Exclude
+    @Setter(AccessLevel.NONE)
+    private List<Task> tasks = new ArrayList<>();
+
+    public void addTask(Task task) {
+        tasks.add(task);
+        task.setOwner(this);
+    }
+
+    public void removeTask(Task task) {
+        tasks.remove(task);
+        task.setOwner(null);
+    }
+}`,
+    annotations: [
+      { name: '@Entity', desc: 'Marca esta clase como una entidad JPA. Hibernate creará una tabla "user_entity" en la base de datos.', tag: 'config' },
+      { name: '@Table(name = "user_entity")', desc: 'Nombre personalizado de la tabla. Se usa "user_entity" porque "user" es palabra reservada en PostgreSQL.', tag: 'config' },
+      { name: '@Id + @GeneratedValue', desc: 'Define la clave primaria con generación automática (ValueGenerationStrategy por defecto).', tag: 'config' },
+      { name: '@OneToMany(mappedBy = "owner")', desc: 'Relación uno-a-muchos. El campo "owner" en Task es quien define la FK. User es el lado INVERSO (no dueño de la FK).', tag: 'relation' },
+      { name: 'FetchType.LAZY', desc: 'Carga diferida: las tareas NO se cargan al obtener el User. Se cargan solo cuando se accede a la colección (SELECT adicional).', tag: 'config' },
+      { name: '@Setter(AccessLevel.NONE)', desc: 'Impide generar setTasks(). La colección solo se modifica vía addTask()/removeTask() para mantener consistencia.', tag: 'lombok' },
+    ],
+    sql: `CREATE TABLE user_entity (
+    id        BIGSERIAL PRIMARY KEY,
+    username  VARCHAR(255),
+    password  VARCHAR(255),
+    email     VARCHAR(255),
+    fullname  VARCHAR(255)
+);`
+  },
+
+  task: {
+    name: 'Task',
+    icon: '📋',
+    color: 'var(--accent-task)',
+    code: `@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+@Getter @Setter @ToString
+@NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public abstract class Task {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private String title;
+
+    @ManyToOne
+    private User owner;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "task_join_tags",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @ToString.Exclude
+    @Setter(AccessLevel.NONE)
+    private Set<TaskTag> tags = new HashSet<>();
+
+    // equals/hashCode basado en ID (Hibernate-proxy-aware)
+}`,
+    annotations: [
+      { name: '@Inheritance(JOINED)', desc: 'Estrategia de herencia: cada subclase (BasicTask, CheckListTask) tiene su propia tabla unida por FK a "task". Permite polymorfismo con normalización.', tag: 'inheritance' },
+      { name: '@ManyToOne', desc: 'Relación muchos-a-uno. Cada Task pertenece a UN User. El lado PROPIETARIO: la FK "owner_id" se crea en la tabla "task".', tag: 'relation' },
+      { name: '@ManyToMany', desc: 'Relación muchos-a-muchos entre Task y TaskTag. Un task puede tener muchos tags, y un tag puede estar en muchos tasks.', tag: 'relation' },
+      { name: '@JoinTable(name = "task_join_tags")', desc: 'Define la tabla intermedia explícitamente. Sin esto, JPA genera un nombre por defecto como "task_tags".', tag: 'relation' },
+      { name: '@JoinColumn(name = "task_id")', desc: 'Columna FK en la tabla intermedia que apunta al lado propietario (Task).', tag: 'relation' },
+      { name: '@JoinColumn(name = "tag_id")', desc: 'Columna FK en la tabla intermedia que apunta al lado inverso (TaskTag).', tag: 'relation' },
+      { name: '@SuperBuilder', desc: 'Variante de @Builder que soporta herencia. Permite construir BasicTask o CheckListTask heredando campos de Task.', tag: 'lombok' },
+    ],
+    sql: `-- Tabla padre (herencia JOINED)
+CREATE TABLE task (
+    id         BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP,
+    title      VARCHAR(255),
+    owner_id   BIGINT REFERENCES user_entity(id)
+);
+
+-- Tabla intermedia (ManyToMany)
+CREATE TABLE task_join_tags (
+    task_id BIGINT REFERENCES task(id),
+    tag_id  BIGINT REFERENCES task_tag(id),
+    PRIMARY KEY (task_id, tag_id)
+);`
+  },
+
+  tasktag: {
+    name: 'TaskTag',
+    icon: '🏷️',
+    color: 'var(--accent-tasktag)',
+    code: `@Entity
+@Getter @Setter @ToString
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class TaskTag {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String nombre;
+
+    // equals/hashCode basado en ID
+    // NO tiene anotaciones de relación
+    // La relación M:N la define Task (@ManyToMany)
+}`,
+    annotations: [
+      { name: '@Entity', desc: 'Entidad simple. Se crea la tabla "task_tag" con id y nombre.', tag: 'config' },
+      { name: 'Lado inverso del M:N', desc: 'TaskTag NO tiene @ManyToMany. Es el lado pasivo. Task define la relación con @JoinTable y la tabla intermedia "task_join_tags".', tag: 'relation' },
+    ],
+    sql: `CREATE TABLE task_tag (
+    id     BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(255)
+);`
+  },
+
+  basic: {
+    name: 'BasicTask',
+    icon: '📝',
+    color: 'var(--accent-basic)',
+    code: `@Entity
+@Getter @Setter
+@ToString(callSuper = true)
+@NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public class BasicTask extends Task {
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    // Hereda de Task:
+    //   id, createdAt, title, owner, tags
+    // No agrega relaciones propias
+}`,
+    annotations: [
+      { name: 'extends Task', desc: 'Hereda de Task con estrategia JOINED. JPA crea la tabla "basic_task" solo con las columnas propias de BasicTask, unida a "task" por FK.', tag: 'inheritance' },
+      { name: '@Column(columnDefinition = "TEXT")', desc: 'Define el tipo de columna como TEXT (PostgreSQL) en lugar de VARCHAR(255). Útil para descripciones largas.', tag: 'config' },
+      { name: '@SuperBuilder', desc: 'Permite construir BasicTask heredando los campos del Builder de Task (title, createdAt, etc.).', tag: 'lombok' },
+    ],
+    sql: `-- Tabla separada (herencia JOINED)
+CREATE TABLE basic_task (
+    id          BIGINT PRIMARY KEY REFERENCES task(id),
+    description TEXT
+);`
+  },
+
+  checklisttask: {
+    name: 'CheckListTask',
+    icon: '✅',
+    color: 'var(--accent-checklisttask)',
+    code: `@Entity
+@Getter @Setter
+@ToString(callSuper = true)
+@NoArgsConstructor @AllArgsConstructor @SuperBuilder
+public class CheckListTask extends Task {
+
+    @OneToMany(
+        mappedBy = "checkListTask",
+        fetch = FetchType.LAZY,
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    @Builder.Default
+    @ToString.Exclude
+    @Setter(AccessLevel.NONE)
+    private List<CheckListItem> items = new ArrayList<>();
+
+    public void addItem(CheckListItem item) {
+        items.add(item);
+        item.setCheckListTask(CheckListTask.this);
+    }
+
+    public void removeItem(CheckListItem item) {
+        items.remove(item);
+    }
+}`,
+    annotations: [
+      { name: 'extends Task', desc: 'Hereda de Task. Tabla propia "check_list_task" unida a "task" por FK (herencia JOINED).', tag: 'inheritance' },
+      { name: '@OneToMany(mappedBy = "checkListTask")', desc: 'Relación uno-a-muchos con CheckListItem. El lado inverso: "checkListTask" en CheckListItem define la FK.', tag: 'relation' },
+      { name: 'cascade = CascadeType.ALL', desc: 'Operaciones en cascada: al guardar/actualizar/borrar un CheckListTask, se propagan los cambios a todos sus CheckListItem.', tag: 'relation' },
+      { name: 'orphanRemoval = true', desc: 'Si quitas un item de la lista (items.remove()), se elimina de la BD, no solo se desvincula. Previene registros huérfanos.', tag: 'relation' },
+      { name: ' addItem() / removeItem()', desc: 'Métodos helper que sincronizan AMBOS lados de la relación para mantener consistencia en memoria.', tag: 'config' },
+    ],
+    sql: `-- Tabla separada (herencia JOINED)
+CREATE TABLE check_list_task (
+    id BIGINT PRIMARY KEY REFERENCES task(id)
+);
+-- La FK "check_list_task_id" está en check_list_item`
+  },
+
+  checklistitem: {
+    name: 'CheckListItem',
+    icon: '☑️',
+    color: 'var(--accent-checklistitem)',
+    code: `@Entity
+@Getter @Setter @ToString
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class CheckListItem {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @ManyToOne
+    private CheckListTask checkListTask;
+
+    private String text;
+
+    @Builder.Default
+    private boolean checked = false;
+
+    public boolean toggle() {
+        return !checked;
+    }
+
+    // equals/hashCode basado en ID
+}`,
+    annotations: [
+      { name: '@ManyToOne', desc: 'Relación muchos-a-uno. Cada item pertenece a UN CheckListTask. Lado PROPIETARIO: la FK "check_list_task_id" se crea aquí.', tag: 'relation' },
+      { name: 'Sin @JoinColumn explícito', desc: 'JPA genera automáticamente la FK con nombre "check_list_task_id" (nombre del campo + "_id").', tag: 'config' },
+      { name: '@Builder.Default', desc: 'Inicializa checked = false al usar el Builder. Sin esto, sería null (y boolean no puede ser null).', tag: 'lombok' },
+    ],
+    sql: `CREATE TABLE check_list_item (
+    id                BIGSERIAL PRIMARY KEY,
+    check_list_task_id BIGINT REFERENCES check_list_task(id),
+    text              VARCHAR(255),
+    checked           BOOLEAN DEFAULT FALSE
+);`
+  }
+};
+
+// ── Relationship lines definition ──
+const relationships = [
+  { from: 'user', to: 'task', label: '1 : N', type: 'relation',
+    desc: 'Un User tiene muchas Tasks. FK owner_id en tabla task.' },
+  { from: 'task', to: 'tasktag', label: 'M : N', type: 'manymany',
+    desc: 'Muchos Tasks con muchos Tags. Tabla intermedia task_join_tags.' },
+  { from: 'task', to: 'basic', label: 'Hereda', type: 'inheritance',
+    desc: 'BasicTask hereda de Task. Tabla basic_task unida a task por FK.' },
+  { from: 'task', to: 'checklisttask', label: 'Hereda', type: 'inheritance',
+    desc: 'CheckListTask hereda de Task. Tabla check_list_task unida a task por FK.' },
+  { from: 'checklisttask', to: 'checklistitem', label: '1 : N', type: 'cascade',
+    desc: 'Un CheckListTask tiene muchos Items. Cascade ALL + orphanRemoval.' },
+];
+
+let selectedEntity = null;
+
+// ── Draw SVG Lines ──
+function drawLines() {
+  const svg = document.getElementById('diagramSvg');
+  const container = document.getElementById('diagramContainer');
+  const rect = container.getBoundingClientRect();
+  svg.innerHTML = '';
+
+  // defs for arrowheads
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const colors = {
+    relation: '#66bb6a',
+    manymany: '#ffa726',
+    inheritance: '#ab47bc',
+    cascade: '#ef5350'
+  };
+  Object.entries(colors).forEach(([type, color]) => {
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'arrow-' + type);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '9');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '6');
+    marker.setAttribute('markerHeight', '6');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    path.setAttribute('fill', color);
+    marker.appendChild(path);
+    defs.appendChild(marker);
+  });
+  svg.appendChild(defs);
+
+  const labelsContainer = document.getElementById('diagramContainer');
+  // Remove old labels
+  labelsContainer.querySelectorAll('.rel-label').forEach(l => l.remove());
+
+  relationships.forEach((rel, i) => {
+    const fromEl = document.querySelector(`[data-entity="${rel.from}"]`);
+    const toEl = document.querySelector(`[data-entity="${rel.to}"]`);
+    if (!fromEl || !toEl) return;
+
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+
+    const x1 = fromRect.left + fromRect.width / 2 - rect.left;
+    const y1 = fromRect.top + fromRect.height / 2 - rect.top;
+    const x2 = toRect.left + toRect.width / 2 - rect.left;
+    const y2 = toRect.top + toRect.height / 2 - rect.top;
+
+    // Offset to not overlap with entity boxes
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const offsetX = Math.cos(angle) * (fromRect.width / 2 + 8);
+    const offsetY = Math.sin(angle) * (fromRect.height / 2 + 8);
+    const offsetX2 = Math.cos(angle) * (toRect.width / 2 + 8);
+    const offsetY2 = Math.sin(angle) * (toRect.height / 2 + 8);
+
+    const sx = x1 + offsetX;
+    const sy = y1 + offsetY;
+    const ex = x2 - offsetX2;
+    const ey = y2 - offsetY2;
+
+    // Curved path
+    const mx = (sx + ex) / 2;
+    const my = (sy + ey) / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const curvature = len * 0.15;
+    // perpendicular offset for curve
+    const nx = -dy / len * curvature;
+    const ny = dx / len * curvature;
+    const cx = mx + nx * (i % 2 === 0 ? 1 : -1);
+    const cy = my + ny * (i % 2 === 0 ? 1 : -1);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`);
+    path.setAttribute('stroke', colors[rel.type]);
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', `url(#arrow-${rel.type})`);
+    path.setAttribute('opacity', '0.6');
+    path.classList.add('rel-path');
+    path.dataset.type = rel.type;
+    path.dataset.from = rel.from;
+    path.dataset.to = rel.to;
+    svg.appendChild(path);
+
+    // Animated flow line on top
+    const flowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    flowPath.setAttribute('d', `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`);
+    flowPath.setAttribute('stroke', colors[rel.type]);
+    flowPath.setAttribute('stroke-width', '2');
+    flowPath.setAttribute('fill', 'none');
+    flowPath.setAttribute('opacity', '0.3');
+    flowPath.classList.add('flow-line', 'rel-path');
+    flowPath.dataset.type = rel.type;
+    flowPath.dataset.from = rel.from;
+    flowPath.dataset.to = rel.to;
+    svg.appendChild(flowPath);
+
+    // Label
+    const label = document.createElement('div');
+    label.className = 'rel-label';
+    label.dataset.type = rel.type;
+    label.dataset.from = rel.from;
+    label.dataset.to = rel.to;
+
+    // Position label at midpoint of curve
+    const t = 0.5;
+    const lx = (1-t)*(1-t)*sx + 2*(1-t)*t*cx + t*t*ex;
+    const ly = (1-t)*(1-t)*sy + 2*(1-t)*t*cy + t*t*ey;
+    label.style.left = lx + 'px';
+    label.style.top = ly + 'px';
+    label.style.transform = 'translate(-50%, -50%)';
+    label.textContent = rel.label;
+    label.title = rel.desc;
+    labelsContainer.appendChild(label);
+  });
+}
+
+// ── Select Entity ──
+function selectEntity(id) {
+  const panel = document.getElementById('detailPanel');
+  const hint = document.getElementById('hint');
+
+  if (selectedEntity === id) {
+    closePanel();
+    return;
+  }
+
+  selectedEntity = id;
+  hint.style.display = 'none';
+
+  // Update entity cards
+  document.querySelectorAll('.entity').forEach(el => {
+    el.classList.remove('selected', 'dimmed');
+    if (el.dataset.entity === id) {
+      el.classList.add('selected');
+    } else {
+      // Check if related
+      const isRelated = relationships.some(r =>
+        (r.from === id && r.to === el.dataset.entity) ||
+        (r.to === id && r.from === el.dataset.entity)
+      );
+      if (!isRelated) el.classList.add('dimmed');
+    }
+  });
+
+  // Update SVG lines
+  document.querySelectorAll('.rel-path').forEach(path => {
+    const isRelated = relationships.some(r =>
+      (r.from === id && r.to === path.dataset.to && r.type === path.dataset.type) ||
+      (r.to === id && r.from === path.dataset.from && r.type === path.dataset.type)
+    );
+    path.setAttribute('opacity', isRelated ? '0.9' : '0.1');
+    path.setAttribute('stroke-width', isRelated ? '3' : '1');
+  });
+
+  // Update labels
+  document.querySelectorAll('.rel-label').forEach(label => {
+    const isRelated = relationships.some(r =>
+      (r.from === id && r.to === label.dataset.to && r.type === label.dataset.type) ||
+      (r.to === id && r.from === label.dataset.from && r.type === label.dataset.type)
+    );
+    label.classList.toggle('highlight', isRelated);
+    label.style.opacity = isRelated ? '1' : '0.2';
+  });
+
+  // Populate panel
+  const data = entities[id];
+  document.getElementById('detailTitle').innerHTML =
+    `${data.icon} <span style="color:${data.color}">${data.name}</span>`;
+
+  // Code
+  const codeEl = document.getElementById('detailCode');
+  codeEl.innerHTML = `<pre><code class="language-java">${escapeHtml(data.code)}</code></pre>`;
+  codeEl.querySelectorAll('code').forEach(block => hljs.highlightElement(block));
+
+  // Info
+  const infoEl = document.getElementById('detailInfo');
+  let html = '<h3>Anotaciones JPA</h3>';
+  data.annotations.forEach(a => {
+    const tagClass = {
+      relation: 'tag-relation',
+      config: 'tag-config',
+      inheritance: 'tag-inheritance',
+      lombok: 'tag-lombok'
+    }[a.tag] || 'tag-config';
+    const tagLabel = {
+      relation: 'Relación',
+      config: 'Config',
+      inheritance: 'Herencia',
+      lombok: 'Lombok'
+    }[a.tag] || '';
+    html += `
+      <div class="annotation-card" data-tooltip-title="${escapeAttr(a.name)}" data-tooltip-body="${escapeAttr(a.desc)}">
+        <div class="annotation-name" style="color:${data.color}">
+          ${escapeHtml(a.name)}
+          <span class="annotation-tag ${tagClass}">${tagLabel}</span>
+        </div>
+        <div class="annotation-desc">${escapeHtml(a.desc)}</div>
+      </div>`;
+  });
+
+  // SQL
+  if (data.sql) {
+    html += `<div class="sql-preview">
+      <h4>SQL generado por JPA</h4>
+      <pre><code class="language-sql">${escapeHtml(data.sql)}</code></pre>
+    </div>`;
+  }
+
+  infoEl.innerHTML = html;
+  infoEl.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+
+  // Open panel
+  panel.classList.add('open');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Add tooltip listeners to annotation cards
+  infoEl.querySelectorAll('.annotation-card').forEach(card => {
+    card.addEventListener('mouseenter', showTooltip);
+    card.addEventListener('mousemove', moveTooltip);
+    card.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+function closePanel() {
+  selectedEntity = null;
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('hint').style.display = '';
+  document.querySelectorAll('.entity').forEach(el => el.classList.remove('selected', 'dimmed'));
+  document.querySelectorAll('.rel-path').forEach(p => { p.setAttribute('opacity', '0.6'); p.setAttribute('stroke-width', '2'); });
+  document.querySelectorAll('.rel-label').forEach(l => { l.classList.remove('highlight'); l.style.opacity = '1'; });
+}
+
+// ── Tooltip ──
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e) {
+  const title = e.currentTarget.dataset.tooltipTitle;
+  const body = e.currentTarget.dataset.tooltipBody;
+  if (!title) return;
+  document.getElementById('tooltipTitle').textContent = title;
+  document.getElementById('tooltipBody').textContent = body;
+  tooltip.classList.add('visible');
+}
+function moveTooltip(e) {
+  let x = e.clientX + 12;
+  let y = e.clientY + 12;
+  if (x + 320 > window.innerWidth) x = e.clientX - 330;
+  if (y + 100 > window.innerHeight) y = e.clientY - 110;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+// ── Helpers ──
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Init ──
+window.addEventListener('load', () => {
+  drawLines();
+  // Redraw on resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(drawLines, 150);
+  });
+});
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (e.key === '1') selectEntity('user');
+  if (e.key === '2') selectEntity('task');
+  if (e.key === '3') selectEntity('tasktag');
+  if (e.key === '4') selectEntity('basic');
+  if (e.key === '5') selectEntity('checklisttask');
+  if (e.key === '6') selectEntity('checklistitem');
+});
+</script>
+
+</body>
+</html>
