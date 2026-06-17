@@ -1,20 +1,14 @@
 package com.fundamentos.jpa.model;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Getter
@@ -29,12 +23,29 @@ public abstract class Task {
 	@Id
 	@GeneratedValue
 	private Long id;
-	
+
+    @Builder.Default
 	private LocalDateTime createdAt = LocalDateTime.now();
-	private String title;
-	
+
+    private String title;
+
+    @ManyToOne
+    private User owner;
+
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_join_tags",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    @ToString.Exclude
+    @Setter(AccessLevel.NONE)
+    private Set<TaskTag> tags = new HashSet<>();
+
     @Override
-    public final boolean equals(Object o) {
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null) return false;
         Class<?> oEffectiveClass = o instanceof HibernateProxy
@@ -49,11 +60,10 @@ public abstract class Task {
     }
 
 	@Override
-    public final int hashCode() {
+    public int hashCode() {
         return this instanceof HibernateProxy
                 ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
                 : getClass().hashCode();
     }
-	
 
 }

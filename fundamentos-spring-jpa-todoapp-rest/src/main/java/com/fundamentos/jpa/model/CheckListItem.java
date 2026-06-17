@@ -1,25 +1,39 @@
 package com.fundamentos.jpa.model;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
 
 @Getter
 @Setter
-@ToString(callSuper = true)
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder
+@Builder
 @Entity
-public class BasicTask extends Task {
-    @Column(columnDefinition = "TEXT")
-    private String description;
+public class CheckListItem {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @ManyToOne
+    private CheckListTask checkListTask;
+
+    private String text;
+
+    @Builder.Default
+    private boolean checked = false;
+
+    public boolean toggle(){
+        return !checked;
+    }
+
 
     @Override
     public final boolean equals(Object o) {
@@ -28,8 +42,8 @@ public class BasicTask extends Task {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        BasicTask basicTask = (BasicTask) o;
-        return getId() != null && Objects.equals(getId(), basicTask.getId());
+        CheckListItem that = (CheckListItem) o;
+        return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
