@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: practica-3
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:test
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true

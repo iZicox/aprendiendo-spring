@@ -1,5 +1,6 @@
 package com.fundamentos.jpa.controller;
 
+import com.fundamentos.jpa.dto.EditBasicTaskRequest;
 import com.fundamentos.jpa.dto.TaskRequest;
 import com.fundamentos.jpa.dto.TaskResponse;
 import com.fundamentos.jpa.model.*;
@@ -9,6 +10,7 @@ import com.fundamentos.jpa.repos.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +22,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/task/")
+@RequestMapping("/task")
 @RequiredArgsConstructor
 public class TaskController {
 
@@ -86,5 +88,25 @@ public class TaskController {
         return taskRepository.findByIdWithItemsAndTags(id)
                 .map(TaskResponse::of)
                 .orElseThrow(()  -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task with id %d not found".formatted(id)));
+    }
+
+    @PutMapping("/basic/{id}")
+    public ResponseEntity<TaskResponse> editBasicTask(
+            @RequestBody EditBasicTaskRequest editBasicTaskRequest,
+            @PathVariable Long id){
+        if(!taskRepository.existsByIdAndTaskType(BasicTask.class, id)){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Task with id %d not found".formatted(id));
+        }
+
+        return ResponseEntity.of(
+                taskRepository.findByIdWithItemsAndTags(id)
+                .map(BasicTask.class::cast)
+                .map(task -> {
+                    task.setTitle(editBasicTaskRequest.title());
+                    task.setDescription(editBasicTaskRequest.description());
+                    return taskRepository.save(task);
+                })
+                .map(TaskResponse::of)
+        );
     }
 }

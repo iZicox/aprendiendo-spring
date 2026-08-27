@@ -24,8 +24,8 @@ public record ProductoDTO(
     }
 
     // editar
-    public static void editar(Producto producto) {
-        producto.setNombre(producto.getNombre());
-        producto.setPrecio(producto.getPrecio());
+    public void editar(Producto producto) {
+        producto.setNombre(this.nombre);
+        producto.setPrecio(this.precio);
     }
 }
