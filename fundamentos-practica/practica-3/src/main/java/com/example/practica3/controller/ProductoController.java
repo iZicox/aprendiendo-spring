@@ -24,9 +24,9 @@ public class ProductoController {
     public ResponseEntity<List<ProductoDTO>> findAll() {
         List<ProductoDTO> listaDto = productoService.findAll();
         if(listaDto.isEmpty()) {
-
+            throw new  ProductNotFoundException("Lista de productos no encontrada");
         }
-        return ResponseEntity.ok(productoService.findAll());
+        return ResponseEntity.ok(listaDto);
     }
 
     // listar por id
