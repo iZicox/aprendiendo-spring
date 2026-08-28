@@ -1,6 +1,7 @@
 package com.example.practica3.controller;
 
 import com.example.practica3.dto.ProductoDTO;
+import com.example.practica3.exception.ProductNotFoundException;
 import com.example.practica3.model.Producto;
 import com.example.practica3.service.ProductoService;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -20,14 +22,19 @@ public class ProductoController {
     // listar todos
     @GetMapping
     public ResponseEntity<List<ProductoDTO>> findAll() {
+        List<ProductoDTO> listaDto = productoService.findAll();
+        if(listaDto.isEmpty()) {
 
+        }
         return ResponseEntity.ok(productoService.findAll());
     }
 
     // listar por id
     @GetMapping("{id}")
     public ResponseEntity<ProductoDTO> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(productoService.findById(id));
+        ProductoDTO buscado = productoService.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("No encontrado id: " + id));
+        return ResponseEntity.ok(buscado);
     }
 
     // crear
@@ -53,5 +60,15 @@ public class ProductoController {
         nuevo.setId(id);
         ProductoDTO editado = productoService.update(ProductoDTO.crearDto(nuevo));
         return ResponseEntity.ok(editado);
+    }
+
+    @GetMapping("/saludo")
+    public ResponseEntity<Map<String,String>> saludo() {
+        return ResponseEntity.ok(Map.of("message", "hola desde spring boot"));
+    }
+
+    @GetMapping("/saludo/{nombre}")
+    public ResponseEntity<Map<String,String>> saludo(@PathVariable String nombre) {
+        return ResponseEntity.ok(Map.of("message", "hola, " + nombre));
     }
 }

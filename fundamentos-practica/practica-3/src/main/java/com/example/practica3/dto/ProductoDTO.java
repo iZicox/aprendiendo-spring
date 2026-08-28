@@ -2,6 +2,8 @@ package com.example.practica3.dto;
 
 import com.example.practica3.model.Producto;
 
+import java.util.Optional;
+
 public record ProductoDTO (Long id, String nombre, Double precio) {
 
     // para leer datos

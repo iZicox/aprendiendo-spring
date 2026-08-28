@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -31,9 +32,9 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
-    public ProductoDTO findById(Long id) {
-        Producto buscado = productoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("No existe el producto con el id: " + id));
-        return ProductoDTO.crearDto(buscado);
+    public Optional<ProductoDTO> findById(Long id) {
+        return productoRepository.findById(id)
+                .map(ProductoDTO::crearDto);
     }
 
     @Override
