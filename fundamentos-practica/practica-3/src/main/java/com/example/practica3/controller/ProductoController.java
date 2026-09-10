@@ -4,6 +4,7 @@ import com.example.practica3.dto.ProductoDTO;
 import com.example.practica3.exception.ProductNotFoundException;
 import com.example.practica3.model.Producto;
 import com.example.practica3.service.ProductoService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +40,7 @@ public class ProductoController {
 
     // crear
     @PostMapping
-    public ResponseEntity<ProductoDTO> create(@RequestBody ProductoDTO productoDTO) {
+    public ResponseEntity<ProductoDTO> create(@Valid @RequestBody ProductoDTO productoDTO) {
         ProductoDTO nuevo = productoService.createProducto(productoDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
@@ -51,7 +52,7 @@ public class ProductoController {
         return ResponseEntity.ok(Map.of("message", "producto elimado con id: " + id));
     }
 
-    @PutMapping("{id}")
+    @PutMapping("{id}") @Valid
     public ResponseEntity<ProductoDTO> update(@PathVariable Long id, @RequestBody ProductoDTO productoDTO) {
         Producto nuevo = Producto.builder()
                         .nombre(productoDTO.nombre())
