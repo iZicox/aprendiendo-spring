@@ -64,4 +64,12 @@ public class ApplicantController {
                 .status(HttpStatus.OK)
                 .body(applicantService.updateAplicant(applicantDto, id));
     }
+
+    //patch
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApplicantDto>  patch(@PathVariable Long id, @RequestBody ApplicantDto applicantDto) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(applicantService.patchAplicant(applicantDto, id));
+    }
 }

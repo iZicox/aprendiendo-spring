@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicants Manager</title>
+    <style>
+        /* ===== RESET & BASE ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --success: #16a34a;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        header span {
+            opacity: .8;
+            font-size: .875rem;
+        }
+
+        /* ===== LAYOUT ===== */
+        .container {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        /* ===== CARD ===== */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: .5rem;
+        }
+
+        .card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: .875rem;
+        }
+
+        label {
+            display: block;
+            font-size: .8125rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: .25rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: .5rem .75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: .9375rem;
+            transition: border-color .15s;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            padding: .5rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: .875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+        }
+
+        .btn:active { transform: scale(.97); }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover { background: var(--danger-hover); }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+        }
+
+        .btn-sm {
+            padding: .3rem .625rem;
+            font-size: .8125rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: .5rem;
+            margin-top: 1rem;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: .5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .875rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: .625rem .75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: .8125rem;
+            text-transform: uppercase;
+            letter-spacing: .025em;
+        }
+
+        tr:hover { background: #f8fafc; }
+
+        .actions {
+            display: flex;
+            gap: .375rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: .15rem .5rem;
+            border-radius: 9999px;
+            font-size: .75rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        /* ===== PAGINATION ===== */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            margin-top: 1rem;
+        }
+
+        .pagination span {
+            font-size: .875rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.4);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+        }
+
+        .toast {
+            padding: .75rem 1rem;
+            border-radius: var(--radius);
+            color: white;
+            font-size: .875rem;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn .3s ease-out;
+            min-width: 250px;
+        }
+
+        .toast-success { background: var(--success); }
+        .toast-error { background: var(--danger); }
+        .toast-info { background: var(--primary); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ===== RESUME SECTION ===== */
+        .resume-content {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: var(--radius);
+            white-space: pre-wrap;
+            margin: .5rem 0;
+            font-size: .9375rem;
+        }
+
+        /* ===== LOADING ===== */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty p {
+            margin-top: .5rem;
+            font-size: .875rem;
+        }
+
+        /* ===== ERROR LOG ===== */
+        .log-section {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .log-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .log-header h2 {
+            font-size: 1.125rem;
+            color: var(--danger);
+        }
+
+        .log-body {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: .5rem;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: .75rem;
+            padding: .625rem .75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: .8125rem;
+            animation: slideIn .3s ease-out;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry:hover {
+            background: #fef2f2;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            white-space: nowrap;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: .75rem;
+            min-width: 85px;
+        }
+
+        .log-method {
+            display: inline-block;
+            padding: .1rem .4rem;
+            border-radius: 4px;
+            font-size: .6875rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-method-get { background: #dbeafe; color: #1e40af; }
+        .log-method-post { background: #dcfce7; color: #166534; }
+        .log-method-put { background: #fef9c3; color: #854d0e; }
+        .log-method-patch { background: #fae8ff; color: #86198f; }
+        .log-method-delete { background: #fee2e2; color: #991b1b; }
+
+        .log-status {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-status-4xx { color: var(--danger); }
+        .log-status-5xx { color: #9333ea; }
+
+        .log-message {
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .log-empty {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: .875rem;
+        }
+
+        .log-count {
+            background: var(--danger);
+            color: white;
+            font-size: .75rem;
+            padding: .15rem .5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+    <h1>&#128188; Applicants Manager</h1>
+    <span>Gestiona postulantes y sus resumes</span>
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Edit Modal (PATCH - parcial) -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h2>&#9998; Editar Applicant <span style="font-size:.75rem; color:var(--text-muted);">(PATCH - solo campos a modificar)</span></h2>
+        <input type="hidden" id="editId">
+        <div class="form-group">
+            <label for="editName">Nombre <span style="color:var(--text-muted); font-weight:400;">(opcional)</span></label>
+            <input type="text" id="editName" placeholder="Dejar vacío para no cambiar">
+        </div>
+        <div class="form-group">
+            <label for="editEmail">Email <span style="color:var(--text-muted); font-weight:400;">(opcional)</span></label>
+            <input type="email" id="editEmail" placeholder="Dejar vacío para no cambiar">
+        </div>
+        <div class="form-group">
+            <label for="editPhone">Teléfono <span style="color:var(--text-muted); font-weight:400;">(opcional)</span></label>
+            <input type="text" id="editPhone" placeholder="Dejar vacío para no cambiar">
+        </div>
+        <div class="form-group">
+            <label for="editStatus">Estado <span style="color:var(--text-muted); font-weight:400;">(opcional)</span></label>
+            <select id="editStatus">
+                <option value="">-- No cambiar --</option>
+                <option value="pending">Pendiente</option>
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+            </select>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="submitPatch()">&#10003; Aplicar Cambios</button>
+            <button class="btn btn-outline" onclick="closeEditModal()">&#10005; Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Resume Modal -->
+<div class="modal-overlay" id="resumeModal">
+    <div class="modal">
+        <h2>&#128196; Resume del Applicant</h2>
+        <input type="hidden" id="resumeApplicantId">
+        <div id="resumeInfo"></div>
+        <div class="btn-group">
+            <button class="btn btn-danger btn-sm" id="deleteResumeBtn" onclick="deleteResume()" style="display:none;">&#128465; Eliminar Resume</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid">
+
+        <!-- Create Form -->
+        <div class="card">
+            <h2>&#10133; Crear Applicant</h2>
+            <form id="createForm" onsubmit="createApplicant(event)">
+                <div class="form-group">
+                    <label for="createName">Nombre</label>
+                    <input type="text" id="createName" required placeholder="Juan Perez">
+                </div>
+                <div class="form-group">
+                    <label for="createEmail">Email</label>
+                    <input type="email" id="createEmail" required placeholder="juan@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="createPhone">Teléfono</label>
+                    <input type="text" id="createPhone" required placeholder="+54 11 1234-5678">
+                </div>
+                <div class="form-group">
+                    <label for="createStatus">Estado</label>
+                    <select id="createStatus">
+                        <option value="pending">Pendiente</option>
+                        <option value="active">Activo</option>
+                        <option value="inactive">Inactivo</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">&#10133; Crear Applicant</button>
+            </form>
+        </div>
+
+        <!-- Create Resume Form -->
+        <div class="card">
+            <h2>&#128196; Crear / Actualizar Resume</h2>
+            <form id="resumeForm" onsubmit="createResume(event)">
+                <div class="form-group">
+                    <label for="resumeApplicantIdInput">Applicant ID</label>
+                    <input type="number" id="resumeApplicantIdInput" required placeholder="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="resumeContent">Contenido del Resume</label>
+                    <textarea id="resumeContent" required placeholder="Experiencia, habilidades, educación..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">&#10133; Guardar Resume</button>
+            </form>
+        </div>
+
+        <!-- Applicants List -->
+        <div class="card full-width">
+            <h2>&#128101; Applicants</h2>
+            <div class="btn-group" style="margin-top:0; margin-bottom:1rem;">
+                <button class="btn btn-outline btn-sm" onclick="loadApplicants(0)">&#8592; Inicio</button>
+                <button class="btn btn-outline btn-sm" onclick="loadApplicants(currentPage - 1)">&#8592; Anterior</button>
+                <span id="pageInfo" style="line-height:2;">Página 1</span>
+                <button class="btn btn-outline btn-sm" onclick="loadApplicants(currentPage + 1)">Siguiente &#8594;</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applicantsBody">
+                        <tr>
+                            <td colspan="6" class="loading">
+                                <div class="spinner"></div>
+                                <p>Cargando...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Error Log -->
+<div class="log-section">
+    <div class="log-card">
+        <div class="log-header">
+            <h2>&#128196; Log de Errores <span class="log-count" id="logCount">0</span></h2>
+            <button class="btn btn-outline btn-sm" onclick="clearLog()">&#128465; Limpiar</button>
+        </div>
+        <div class="log-body" id="logBody">
+            <div class="log-empty" id="logEmpty">No hay errores registrados</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== CONFIG =====
+    const API_BASE = '/api/v1';
+    let currentPage = 0;
+    const PAGE_SIZE = 20;
+
+    // ===== HELPERS =====
+    function toast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = `toast toast-${type}`;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(100%)';
+            el.style.transition = 'all .3s';
+            setTimeout(() => el.remove(), 300);
+        }, 3000);
+    }
+
+    function statusBadge(status) {
+        if (!status) return '<span class="status-badge status-pending">N/A</span>';
+        const map = {
+            active: 'status-active',
+            inactive: 'status-inactive',
+            pending: 'status-pending'
+        };
+        const label = { active: 'Activo', inactive: 'Inactivo', pending: 'Pendiente' };
+        return `<span class="status-badge ${map[status] || 'status-pending'}">${label[status] || status}</span>`;
+    }
+
+    function handleError(err, method = 'GET', url = '') {
+        const msg = err.error || err.message || 'Error desconocido';
+        const status = err.status || '';
+        toast(msg, 'error');
+        addLog(method, url, status, msg, err);
+    }
+
+    // ===== ERROR LOG =====
+    let logEntries = [];
+
+    function addLog(method, url, status, message, rawError = null) {
+        const now = new Date();
+        const time = now.toLocaleTimeString('es-AR');
+        const entry = { time, method, url, status, message, rawError };
+        logEntries.unshift(entry);
+
+        const logBody = document.getElementById('logBody');
+        const logEmpty = document.getElementById('logEmpty');
+        const logCount = document.getElementById('logCount');
+
+        // Quitar empty state
+        if (logEmpty) logEmpty.remove();
+
+        // Crear elemento del log
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+
+        const methodClass = `log-method-${method.toLowerCase()}`;
+        const statusClass = status >= 500 ? 'log-status-5xx' : status >= 400 ? 'log-status-4xx' : '';
+
+        div.innerHTML = `
+            <span class="log-time">${time}</span>
+            <span class="log-method ${methodClass}">${method}</span>
+            ${status ? `<span class="log-status ${statusClass}">${status}</span>` : ''}
+            <span class="log-message">${escHtml(message)}</span>
+        `;
+
+        console.log(message);
+
+        logBody.prepend(div);
+        logCount.textContent = logEntries.length;
+    }
+
+    function clearLog() {
+        logEntries = [];
+        const logBody = document.getElementById('logBody');
+        const logCount = document.getElementById('logCount');
+        logBody.innerHTML = '<div class="log-empty" id="logEmpty">No hay errores registrados</div>';
+        logCount.textContent = '0';
+    }
+
+    function escHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ===== APPLICANTS =====
+    async function loadApplicants(page = 0) {
+        if (page < 0) page = 0;
+        currentPage = page;
+        const tbody = document.getElementById('applicantsBody');
+        tbody.innerHTML = `<tr><td colspan="6" class="loading"><div class="spinner"></div><p>Cargando...</p></td></tr>`;
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants?page=${currentPage}&size=${PAGE_SIZE}&sort=name`);
+            if (!res.ok) throw await res.json();
+
+            const data = await res.json();
+            const applicants = data.content || [];
+            const totalPages = data.totalPages || 1;
+
+            document.getElementById('pageInfo').textContent =
+                `Página ${currentPage + 1} de ${totalPages} (${data.totalElements || 0} total)`;
+
+            if (applicants.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty">
+                    <p>&#128204; No hay applicants registrados</p>
+                </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = applicants.map(a => `
+                <tr>
+                    <td><strong>${a.id}</strong></td>
+                    <td>${a.name || '-'}</td>
+                    <td>${a.email || '-'}</td>
+                    <td>${a.phone || '-'}</td>
+                    <td>${statusBadge(a.status)}</td>
+                    <td class="actions">
+                        <button class="btn btn-primary btn-sm" onclick="openEditModal(${a.id}, '${esc(a.name)}', '${esc(a.email)}', '${esc(a.phone)}', '${esc(a.status)}')">&#9998;</button>
+                        <button class="btn btn-outline btn-sm" onclick="viewResume(${a.id})">&#128196;</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteApplicant(${a.id})">&#128465;</button>
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty"><p>Error al cargar applicants</p></td></tr>`;
+            handleError(err, 'GET', `${API_BASE}/applicants?page=${currentPage}&size=${PAGE_SIZE}`);
+        }
+    }
+
+    function esc(str) {
+        return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    async function createApplicant(e) {
+        e.preventDefault();
+        const body = {
+            name: document.getElementById('createName').value.trim(),
+            email: document.getElementById('createEmail').value.trim(),
+            phone: document.getElementById('createPhone').value.trim(),
+            status: document.getElementById('createStatus').value
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw await res.json();
+
+            const created = await res.json();
+            toast(`Applicant #${created.id} creado exitosamente`, 'success');
+            document.getElementById('createForm').reset();
+            loadApplicants(0);
+
+        } catch (err) {
+            handleError(err, 'POST', `${API_BASE}/applicants`);
+        }
+    }
+
+    async function deleteApplicant(id) {
+        if (!confirm(`¿Eliminar applicant #${id}? Esto también eliminará su resume.`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants/${id}`, { method: 'DELETE' });
+            if (!res.ok && res.status !== 204) throw await res.json();
+
+            toast(`Applicant #${id} eliminado`, 'success');
+            loadApplicants(currentPage);
+
+        } catch (err) {
+            handleError(err, 'DELETE', `${API_BASE}/applicants/${id}`);
+        }
+    }
+
+    // ===== EDIT MODAL (PATCH) =====
+    function openEditModal(id, name, email, phone, status) {
+        document.getElementById('editId').value = id;
+        // Pre-cargar valores actuales como placeholder, campos vacíos para no enviar
+        document.getElementById('editName').value = '';
+        document.getElementById('editName').placeholder = name || '';
+        document.getElementById('editEmail').value = '';
+        document.getElementById('editEmail').placeholder = email || '';
+        document.getElementById('editPhone').value = '';
+        document.getElementById('editPhone').placeholder = phone || '';
+        document.getElementById('editStatus').value = '';
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function submitPatch() {
+        const id = document.getElementById('editId').value;
+
+        // Solo enviar campos que tengan valor (PATCH = actualización parcial)
+        const body = {};
+        const name = document.getElementById('editName').value.trim();
+        const email = document.getElementById('editEmail').value.trim();
+        const phone = document.getElementById('editPhone').value.trim();
+        const status = document.getElementById('editStatus').value;
+
+        if (name) body.name = name;
+        if (email) body.email = email;
+        if (phone) body.phone = phone;
+        if (status) body.status = status;
+
+        if (Object.keys(body).length === 0) {
+            toast('No se modificó ningún campo', 'info');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw await res.json();
+
+            toast(`Applicant #${id} actualizado`, 'success');
+            closeEditModal();
+            loadApplicants(currentPage);
+
+        } catch (err) {
+            handleError(err, 'PATCH', `${API_BASE}/applicants/${id}`);
+        }
+    }
+
+    // ===== RESUMES =====
+    async function createResume(e) {
+        e.preventDefault();
+        const applicantId = document.getElementById('resumeApplicantIdInput').value;
+        const content = document.getElementById('resumeContent').value.trim();
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants/${applicantId}/resume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            if (!res.ok) throw await res.json();
+
+            toast(`Resume creado para applicant #${applicantId}`, 'success');
+            document.getElementById('resumeForm').reset();
+
+        } catch (err) {
+            handleError(err, 'POST', `${API_BASE}/applicants/${applicantId}/resume`);
+        }
+    }
+
+    async function viewResume(applicantId) {
+        const info = document.getElementById('resumeInfo');
+        const delBtn = document.getElementById('deleteResumeBtn');
+        document.getElementById('resumeApplicantId').value = applicantId;
+
+        info.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+        delBtn.style.display = 'none';
+        document.getElementById('resumeModal').classList.add('active');
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants/${applicantId}/resume`);
+            if (res.status === 404) {
+                info.innerHTML = `<div class="empty"><p>No existe resume para este applicant.</p></div>`;
+                return;
+            }
+            if (!res.ok) throw await res.json();
+
+            const data = await res.json();
+            delBtn.style.display = 'inline-flex';
+            info.innerHTML = `
+                <div style="margin-bottom:.5rem;">
+                    <strong>ID Resume:</strong> ${data.id || '-'}<br>
+                    <strong>Applicant:</strong> ${data.applicantSummary?.name || 'N/A'}
+                </div>
+                <div class="resume-content">${data.content || '(vacío)'}</div>
+            `;
+        } catch (err) {
+            info.innerHTML = `<div class="empty"><p>Error al obtener resume</p></div>`;
+            handleError(err, 'GET', `${API_BASE}/applicants/${applicantId}/resume`);
+        }
+    }
+
+    async function deleteResume() {
+        const applicantId = document.getElementById('resumeApplicantId').value;
+        if (!confirm(`¿Eliminar resume del applicant #${applicantId}?`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/applicants/${applicantId}/resume`, { method: 'DELETE' });
+            if (!res.ok && res.status !== 204) throw await res.json();
+
+            toast('Resume eliminado', 'success');
+            closeResumeModal();
+
+        } catch (err) {
+            handleError(err, 'DELETE', `${API_BASE}/applicants/${applicantId}/resume`);
+        }
+    }
+
+    function closeResumeModal() {
+        document.getElementById('resumeModal').classList.remove('active');
+    }
+
+    // ===== MODALS: close on overlay click / Escape =====
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+        }
+    });
+
+    // ===== INIT =====
+    loadApplicants(0);
+</script>
+
+</body>
+</html>

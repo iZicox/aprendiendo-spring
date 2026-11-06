@@ -20,9 +20,10 @@ public class Resume {
     private Long id;
     private String content;
 
+    // esta seria la fk de la tabla
     @ToString.Exclude // evita recursion infinita
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "applicantId") // usa el nombre de la tabla
+    @JoinColumn(name = "applicant_id") // usa el nombre de la tabla
     private Applicant applicant;
 
     @Override

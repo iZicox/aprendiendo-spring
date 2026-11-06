@@ -98,7 +98,8 @@ public class ApplicantServiceImplH2 implements ApplicantService {
     @Transactional
     public ApplicantDto updateAplicant(ApplicantDto applicantDto, Long id) {
         // buscamos cual es la entidad a actualizar
-        Applicant old = repository.findById(id).orElseThrow(() -> new ApplicantNotFound("Applicant not found with id " + applicantDto.id()));
+        Applicant old = repository.findById(id)
+                .orElseThrow(() -> new ApplicantNotFound("Applicant not found with id " + applicantDto.id()));
         // extraemos el resume
         Resume oldResume = old.getResume();
 
@@ -107,10 +108,38 @@ public class ApplicantServiceImplH2 implements ApplicantService {
         old.setPhone(applicantDto.phone());
         old.setEmail(applicantDto.email());
         old.setStatus(applicantDto.status());
-        oldResume.setContent(applicantDto.resumeDto().content());
+        if(oldResume != null && applicantDto.resumeDto() != null){
+            oldResume.setContent(applicantDto.resumeDto().content());
+        }
 
         // como esta en la misma transaccion y la entidad esta siendo manejada no hace falta usar el save
 
         return ApplicantDto.getDto(old);
+    }
+
+    // patch
+    @Override
+    @Transactional
+    public ApplicantDto patchAplicant(ApplicantDto applicantDto, Long id) {
+        Applicant applicant = repository.findById(id)
+                .orElseThrow(() -> new ApplicantNotFound("Applicant not found with id " + id));
+
+        if(applicantDto.name() != null){
+            applicant.setName(applicantDto.name());
+        }
+
+        if(applicantDto.phone() != null){
+            applicant.setPhone(applicantDto.phone());
+        }
+
+        if(applicantDto.email() != null){
+            applicant.setEmail(applicantDto.email());
+        }
+
+        if(applicantDto.status() != null){
+            applicant.setStatus(applicantDto.status());
+        }
+
+        return ApplicantDto.getDto(applicant);
     }
 }

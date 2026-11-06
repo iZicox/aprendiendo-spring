@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -32,6 +34,11 @@ public class Applicant {
             orphanRemoval = true        // eliminar entidades hijas sin padre
     ) //usa el nombre del atributo en resume
     private Resume resume;
+
+    @ToString.Exclude
+    @JsonIgnore
+    @OneToMany(mappedBy = "applicant") // usa el nombre del atributo en application
+    private List<Application> applications;
 
     @Override
     public final boolean equals(Object o) {

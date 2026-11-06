@@ -17,4 +17,6 @@ public interface ApplicantService {
     void deleteAplicantById(Long id);
     // editar
     ApplicantDto updateAplicant(ApplicantDto applicantDto, Long id);
+    // patch
+    ApplicantDto patchAplicant(ApplicantDto applicantDto, Long id);
 }
